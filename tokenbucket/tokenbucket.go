@@ -67,8 +67,9 @@ func UpdateBucketInCache(ctx context.Context, client *redis.Client, key string, 
 	// 4 minutes later, the bucket will reach max token number
 	// then we don't need to keep this bucket in the cache
 	// when user request with this billing account id come again after expiration, we will just start a new bucket with 10 tokens
-	timeForCurrentbucketToReachMaxTokenNumber := tokenBucket.tokenLastIncreaseTime.Add(time.Duration(math.Ceil(float64(bucketMaxTokenNumber-tokenBucket.tokenNumbers)/tokenDropRatePerMin)) * time.Minute)
-	client.Expire(ctx, key, time.Until(timeForCurrentbucketToReachMaxTokenNumber))
-	fmt.Printf("set data expire time to %s for: %s, expire duration %f minutes\n", timeForCurrentbucketToReachMaxTokenNumber, key, time.Until(timeForCurrentbucketToReachMaxTokenNumber).Minutes())
+	tokesLeftForBucketToFull := bucketMaxTokenNumber - tokenBucket.tokenNumbers
+	timeForCurrentbucketToFull := tokenBucket.tokenLastIncreaseTime.Add(time.Duration(math.Ceil(float64(tokesLeftForBucketToFull)/tokenDropRatePerMin)) * time.Minute)
+	client.Expire(ctx, key, time.Until(timeForCurrentbucketToFull))
+	fmt.Printf("set data expire time to %s for: %s, expire duration %f minutes\n", timeForCurrentbucketToFull, key, time.Until(timeForCurrentbucketToFull).Minutes())
 	return http.StatusOK, nil
 }
