@@ -14,7 +14,7 @@ import (
 
 type tokenBucket struct {
 	tokenNumbers          int
-	lastTokenIncreaseTime time.Time
+	tokenLastIncreaseTime time.Time
 }
 
 const (
@@ -25,13 +25,13 @@ const (
 // Self maintained token bucket
 func reconstructTokenBucketFromMap(currentCache map[string]string) tokenBucket {
 	if len(currentCache) == 0 {
-		return tokenBucket{tokenNumbers: bucketMaxTokenNumber, lastTokenIncreaseTime: time.Now()}
+		return tokenBucket{tokenNumbers: bucketMaxTokenNumber, tokenLastIncreaseTime: time.Now()}
 	}
 	lastSavedTokens, _ := strconv.Atoi(currentCache["tokens"])
-	lastTokenIncreaseTime, _ := time.Parse(time.RFC3339, currentCache["lastTokenIncreaseTime"])
+	tokenLastIncreaseTime, _ := time.Parse(time.RFC3339, currentCache["tokenLastIncreaseTime"])
 	currentTime := time.Now()
-	elapsedTime := currentTime.Sub(lastTokenIncreaseTime)
-	fmt.Printf("before calculation: lastSavedTokens: %d, savedLastUpdatedTime: %s, timeNow: %s, elapsedTime: %s\n", lastSavedTokens, lastTokenIncreaseTime, currentTime, elapsedTime)
+	elapsedTime := currentTime.Sub(tokenLastIncreaseTime)
+	fmt.Printf("before calculation: lastSavedTokens: %d, savedLastUpdatedTime: %s, timeNow: %s, elapsedTime: %s\n", lastSavedTokens, tokenLastIncreaseTime, currentTime, elapsedTime)
 	// calculate tokens
 	shouldIncreaseTokens := int(math.Floor(elapsedTime.Seconds()/60)) * tokenDropRatePerMin
 	tokensNow := shouldIncreaseTokens + lastSavedTokens
@@ -39,11 +39,11 @@ func reconstructTokenBucketFromMap(currentCache map[string]string) tokenBucket {
 		tokensNow = bucketMaxTokenNumber
 	}
 	if shouldIncreaseTokens > 0 {
-		// update lastTokenIncreaseTime if tokens are increased
-		lastTokenIncreaseTime = lastTokenIncreaseTime.Add(time.Duration(shouldIncreaseTokens) * time.Minute)
+		// update tokenLastIncreaseTime if tokens are increased
+		tokenLastIncreaseTime = tokenLastIncreaseTime.Add(time.Duration(shouldIncreaseTokens) * time.Minute)
 	}
-	fmt.Printf("after calculation: tokensNow: %d, lastTokenIncreaseTime: %s\n", tokensNow, lastTokenIncreaseTime)
-	return tokenBucket{tokenNumbers: tokensNow, lastTokenIncreaseTime: lastTokenIncreaseTime}
+	fmt.Printf("after calculation: tokensNow: %d, tokenLastIncreaseTime: %s\n", tokensNow, tokenLastIncreaseTime)
+	return tokenBucket{tokenNumbers: tokensNow, tokenLastIncreaseTime: tokenLastIncreaseTime}
 }
 
 func UpdateBucketInCache(ctx context.Context, client *redis.Client, key string, currentCache map[string]string) (int, error) {
@@ -56,7 +56,7 @@ func UpdateBucketInCache(ctx context.Context, client *redis.Client, key string, 
 
 	_, err := client.HSet(ctx, key, map[string]string{
 		"tokens":                strconv.Itoa(tokenBucket.tokenNumbers),
-		"lastTokenIncreaseTime": tokenBucket.lastTokenIncreaseTime.Format(time.RFC3339),
+		"tokenLastIncreaseTime": tokenBucket.tokenLastIncreaseTime.Format(time.RFC3339),
 	}).Result()
 	if err != nil {
 		return http.StatusInternalServerError, err
