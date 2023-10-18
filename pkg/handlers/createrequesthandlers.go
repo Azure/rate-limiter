@@ -48,12 +48,13 @@ func (uh ClusterCreateRequestHandlers) HandleRequest(rw http.ResponseWriter, r *
 		return
 	}
 	id := u[uh.key].(string)
-	info, err := uh.client.HGetAll(uh.ctx, id).Result()
+	fmt.Printf("find bucket by key: %s\n", id)
+	bucket, err := tokenbucket.NewBucket(uh.ctx, tokenbucket.NewCacheClient(uh.ctx, uh.client), id, tokenbucket.DefaultTokenDropRatePerMin, tokenbucket.DefaultBurstSize)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	statusCode, err := tokenbucket.UpdateBucketInCache(uh.ctx, uh.client, id, info)
+	statusCode, err := bucket.TakeToken()
 	if err != nil {
 		http.Error(rw, err.Error(), statusCode)
 		return
