@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
@@ -28,17 +27,13 @@ func BuildRedisClientFromAzure(ctx context.Context, subscriptionID string, resou
 	if err != nil {
 		return nil, err
 	}
-	log.Println("get redis host:", redisHost)
-	log.Println("get redis access keys:", redisPassword)
 
 	op := &redis.Options{Addr: redisHost, Password: redisPassword, TLSConfig: &tls.Config{MinVersion: tls.VersionTLS12}, WriteTimeout: 5 * time.Second}
 	client := redis.NewClient(op)
-	log.Println("redis client constructed")
 	err = client.Ping(ctx).Err()
 	if err != nil {
 		return nil, errors.New(fmt.Sprintf("failed to connect with redis instance at %s - %v", redisHost, err))
 	}
-	log.Println("redis client connect successfully")
 	return client, nil
 }
 
