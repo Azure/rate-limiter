@@ -5,6 +5,10 @@ token bucket
  ![image](https://github.com/Xinyue-Wang/token_bucket_cache/assets/37516611/27cf75b1-2198-466b-9f57-a26a82f40c0e)
 
 ## self-maintained distributed cache
+![image](https://github.com/Xinyue-Wang/rate-limiting-with-distributed-cache/assets/37516611/87df442d-2048-45f7-94be-f0fcbc01486c)
+
+
+
 1. Start each bucket full:
 ![image](https://github.com/Xinyue-Wang/token_bucket_cache/assets/37516611/661b1819-d24e-4a06-b6d8-f1f508b43be2)
 2. Each bucket auto expired after reach max tokens:
