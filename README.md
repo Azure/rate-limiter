@@ -1,9 +1,10 @@
-# token_bucket_cache
+# rate-limiting-with-distributed-cache
 
-## throttle algorithm
+## rate limiting algorithm
+token bucket
  ![image](https://github.com/Xinyue-Wang/token_bucket_cache/assets/37516611/27cf75b1-2198-466b-9f57-a26a82f40c0e)
 
-## self-maintained cache
+## self-maintained distributed cache
 1. Start each bucket full:
 ![image](https://github.com/Xinyue-Wang/token_bucket_cache/assets/37516611/661b1819-d24e-4a06-b6d8-f1f508b43be2)
 2. Each bucket auto expired after reach max tokens:
