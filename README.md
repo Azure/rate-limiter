@@ -5,7 +5,6 @@ token bucket
  ![image](https://github.com/Xinyue-Wang/token_bucket_cache/assets/37516611/27cf75b1-2198-466b-9f57-a26a82f40c0e)
 
 ## self-maintained distributed cache
-![image](https://github.com/Xinyue-Wang/rate-limiting-with-distributed-cache/assets/37516611/87df442d-2048-45f7-94be-f0fcbc01486c)
 
 
 
@@ -14,7 +13,7 @@ token bucket
 2. Each bucket auto expired after reach max tokens:
 ![image](https://github.com/Xinyue-Wang/token_bucket_cache/assets/37516611/faa8a8ee-4f6d-4a8f-bdbb-e32460e47901)
 3. Only need to save token number and timestamp when bucket reached saved token number
-![image](https://github.com/Xinyue-Wang/token_bucket_cache/assets/37516611/5839180f-da50-4eef-8aae-0bd7a0150050)
+![image](https://github.com/Xinyue-Wang/rate-limiting-with-distributed-cache/assets/37516611/87df442d-2048-45f7-94be-f0fcbc01486c)
 
 
 ## run the prototype
