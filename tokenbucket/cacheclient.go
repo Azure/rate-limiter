@@ -7,19 +7,19 @@ import (
 	"github.com/go-redis/redis/v8"
 )
 
-type cacheClient struct {
+type CacheClient struct {
 	ctx    context.Context
 	client *redis.Client
 }
 
-func NewCacheClient(ctx context.Context, client *redis.Client) *cacheClient {
-	return &cacheClient{
+func NewCacheClient(ctx context.Context, client *redis.Client) *CacheClient {
+	return &CacheClient{
 		ctx:    ctx,
 		client: client,
 	}
 }
 
-func (c *cacheClient) UpdateCache(key string, cacheData map[string]string, expireTime time.Duration) error {
+func (c *CacheClient) UpdateCache(key string, cacheData map[string]string, expireTime time.Duration) error {
 	_, err := c.client.HSet(c.ctx, key, cacheData).Result()
 	if err != nil {
 		return err
@@ -28,6 +28,6 @@ func (c *cacheClient) UpdateCache(key string, cacheData map[string]string, expir
 	return nil
 }
 
-func (c *cacheClient) GetCache(key string) (map[string]string, error) {
+func (c *CacheClient) GetCache(key string) (map[string]string, error) {
 	return c.client.HGetAll(c.ctx, key).Result()
 }

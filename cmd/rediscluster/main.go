@@ -28,25 +28,17 @@ const (
 func main() {
 	ctx := context.Background()
 
-	subscriptionID := os.Getenv("AZURE_SUBSCRIPTION_ID")
-	if len(subscriptionID) == 0 {
-		log.Fatal("AZURE_SUBSCRIPTION_ID is not set.")
+	redisHost := os.Getenv("REDIS_HOST")
+	if len(redisHost) == 0 {
+		log.Fatal("REDIS_HOST is not set.")
 	}
-	resourceGroupName := os.Getenv("AZURE_RESOURCE_GROUP")
-	if len(resourceGroupName) == 0 {
-		log.Fatal("AZURE_RESOURCE_GROUP is not set.")
-	}
-	redisName := os.Getenv("AZURE_REDIS_NAME")
-	if len(redisName) == 0 {
-		log.Fatal("AZURE_REDIS_NAME is not set.")
-	}
-
-	redisClient, err := redisclient.BuildRedisClientFromAzure(ctx, subscriptionID, resourceGroupName, redisName)
+	// connect to redis cluster
+	redisClusterClient, err := redisclient.BuildRedisClusterClient(ctx, redisHost, os.Getenv("REDIS_PASSWORD"))
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	uh := handlers.NewClusterCreateRequestHandlers(ctx, tokenbucket.NewCacheClient(ctx, redisClient), key)
+	uh := handlers.NewClusterCreateRequestHandlers(ctx, tokenbucket.NewClusterClient(ctx, redisClusterClient), key)
 
 	router := mux.NewRouter()
 	router.HandleFunc(fmt.Sprintf("/%s/", key), uh.HandleRequest).Methods(http.MethodPost)

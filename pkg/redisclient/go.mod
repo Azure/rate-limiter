@@ -1,4 +1,4 @@
-module go.goms.io/token_bucket_cache/pkg/azureclient
+module go.goms.io/token_bucket_cache/pkg/redisclient
 
 go 1.20
 

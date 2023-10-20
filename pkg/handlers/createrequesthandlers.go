@@ -9,17 +9,16 @@ import (
 
 	"go.goms.io/token_bucket_cache/tokenbucket"
 
-	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/mux"
 )
 
 type ClusterCreateRequestHandlers struct {
 	ctx    context.Context
-	client *redis.Client
+	client tokenbucket.RedisClient
 	key    string
 }
 
-func NewClusterCreateRequestHandlers(ctx context.Context, client *redis.Client, key string) ClusterCreateRequestHandlers {
+func NewClusterCreateRequestHandlers(ctx context.Context, client tokenbucket.RedisClient, key string) ClusterCreateRequestHandlers {
 	return ClusterCreateRequestHandlers{
 		ctx:    ctx,
 		client: client,
@@ -49,7 +48,7 @@ func (uh ClusterCreateRequestHandlers) HandleRequest(rw http.ResponseWriter, r *
 	}
 	id := u[uh.key].(string)
 	fmt.Printf("find bucket by key: %s\n", id)
-	bucket, err := tokenbucket.NewBucket(uh.ctx, tokenbucket.NewCacheClient(uh.ctx, uh.client), id, tokenbucket.DefaultTokenDropRatePerMin, tokenbucket.DefaultBurstSize)
+	bucket, err := tokenbucket.NewBucket(uh.ctx, uh.client, id, tokenbucket.DefaultTokenDropRatePerMin, tokenbucket.DefaultBurstSize)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
@@ -66,7 +65,7 @@ func (uh ClusterCreateRequestHandlers) HandleRequest(rw http.ResponseWriter, r *
 func (uh ClusterCreateRequestHandlers) GetBucketStats(rw http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)[uh.key]
 	fmt.Printf("find bucket by key: %s\n", id)
-	info, err := uh.client.HGetAll(r.Context(), id).Result()
+	info, err := uh.client.GetCache(id)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return

@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: rate-limit-server
+  name: rate-limit-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rate-limit-server
+  template:
+    metadata:
+      labels:
+        app: rate-limit-server
+    spec:
+      containers:
+      - env:
+        - name: REDIS_HOST
+          value: redis-cluster:6379
+        image: xinywadocker/rate-limit:v5.0
+        imagePullPolicy: IfNotPresent
+        name: rate-limit-server
+        ports:
+        - containerPort: 80
+          protocol: TCP

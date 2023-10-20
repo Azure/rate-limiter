@@ -1,10 +1,11 @@
-package azureclient
+package redisclient
 
 import (
 	"context"
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
@@ -28,9 +29,28 @@ func BuildRedisClientFromAzure(ctx context.Context, subscriptionID string, resou
 		return nil, err
 	}
 
-	op := &redis.Options{Addr: redisHost, Password: redisPassword, TLSConfig: &tls.Config{MinVersion: tls.VersionTLS12}, WriteTimeout: 5 * time.Second}
+	return BuildRedisClient(ctx, redisHost, redisPassword)
+}
+
+func BuildRedisClient(ctx context.Context, redisHost, redisPassword string) (*redis.Client, error) {
+	op := &redis.Options{Addr: redisHost, Password: redisPassword, TLSConfig: &tls.Config{MinVersion: tls.VersionTLS12}, WriteTimeout: 60 * time.Second}
 	client := redis.NewClient(op)
-	err = client.Ping(ctx).Err()
+	err := client.Ping(ctx).Err()
+	if err != nil {
+		return nil, errors.New(fmt.Sprintf("failed to connect with redis instance at %s - %v", redisHost, err))
+	}
+	return client, nil
+}
+
+func BuildRedisClusterClient(ctx context.Context, redisHost, redisPassword string) (*redis.ClusterClient, error) {
+	var op *redis.ClusterOptions
+	if len(redisPassword) == 0 {
+		op = &redis.ClusterOptions{Addrs: strings.Split(redisHost, ",")}
+	} else {
+		op = &redis.ClusterOptions{Addrs: strings.Split(redisHost, ","), Password: redisPassword}
+	}
+	client := redis.NewClusterClient(op)
+	err := client.Ping(ctx).Err()
 	if err != nil {
 		return nil, errors.New(fmt.Sprintf("failed to connect with redis instance at %s - %v", redisHost, err))
 	}
