@@ -58,5 +58,33 @@ The HTTP server will start on port `8080`.
    Get bucket stats for billingAccount id1:
    ```bash
    curl -i localhost:8080/billingAccount/id1
+   ```
+
+### With azure redis example
+1. Deployer redis cluster (minimum 6 nodes)
+```
+kubectl apply -f rediscluster/redis-cluster.yaml
+kubectl apply -f rediscluster/redis-configmap.yaml
+kubectl apply -f rediscluster/redis-service.yaml
+rediscluster/roles.sh
+```
+
+2. Deploy test server and expose service
+```
+kubectl apply -f cmd/rediscluster/template/deployment.yaml
+kubectl expose deployment rate-limit-server --name=rate-limit-svc --port=8080 --target-port=8080 --type=NodePort
+kubectl port-forward svc/rate-limit-svc 8080:80
+```
+3. Send request to test cache and throttle:
+
+   Create request with billingAccount id1:
+   ```bash
+   curl -i -X POST -d '{"billingAccount":"id1"}' localhost:8080/billingAccount/
    ``` 
+
+   Get bucket stats for billingAccount id1:
+   ```bash
+   curl -i localhost:8080/billingAccount/id1
+   ```
+
   
