@@ -77,10 +77,15 @@ func (b *Bucket) TakeToken() (int, error) {
 		return http.StatusInternalServerError, err
 	}
 	fmt.Printf("set data expire time to %s for: %s, expire duration %f minutes\n", timeForCurrentbucketToFull, b.key, time.Until(timeForCurrentbucketToFull).Minutes())
+	memoryUsage, err := b.client.GetMemoryUsage(b.key)
+	if err != nil {
+		return http.StatusInternalServerError, err
+	}
+	fmt.Printf("memory usage for %s: %d bytes\n", b.key, memoryUsage)
 	return http.StatusOK, nil
 }
 
-func (b *Bucket) GetTokenStats() (int, int, int) {
+func (b *Bucket) GetBucketStats() (int, int, int) {
 	return b.tokenState.tokenNumbers, b.burstSize, b.tokenDropRatePerMin
 }
 

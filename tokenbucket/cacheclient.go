@@ -31,3 +31,8 @@ func (c *CacheClient) UpdateCache(key string, cacheData map[string]string, expir
 func (c *CacheClient) GetCache(key string) (map[string]string, error) {
 	return c.client.HGetAll(c.ctx, key).Result()
 }
+
+
+func (c *CacheClient) GetMemoryUsage(key string)(int64, error) {
+	return c.client.MemoryUsage(c.ctx, key).Result()
+}
