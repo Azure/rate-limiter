@@ -1,4 +1,4 @@
-# rate-limiting-with-distributed-cache
+# rate-limiter-backed-by-redis-cache
 
 ## rate limiting algorithm
 token bucket
