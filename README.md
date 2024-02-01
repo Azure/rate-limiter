@@ -1,9 +1,18 @@
 # rate-limiter-backed-by-redis-cache
-## rate limiter interface
-![ratelimiter design (1)](https://github.com/Xinyue-Wang/rate-limiter-backed-by-redis-cache/assets/37516611/6dc2b223-29ba-4798-b48d-429753d7dd95)
+## rate limiter workflow
+
+![ratelimiter design (2)](https://github.com/Xinyue-Wang/rate-limiter-backed-by-redis-cache/assets/37516611/529faeec-7269-4701-9ac9-f97914551020)
+
+## counter
+aggregated counting + local counting
+![Counter design with cache](https://github.com/Xinyue-Wang/rate-limiter-backed-by-redis-cache/assets/37516611/0bf4e623-17eb-4466-9a49-40fdddba71f8)
+
+## remote store
+### Option1: Azure Redis Cache
 
 
-## 
+### Option2: Redis cluster
+
 
 ## rate limiting algorithm
 ### Option1: token bucket
@@ -69,7 +78,7 @@ The HTTP server will start on port `8080`.
    curl -i localhost:8080/billingAccount/id1
    ```
 
-### With azure redis example
+### With redis cluster example
 1. Deployer redis cluster (minimum 6 nodes)
 ```
 kubectl apply -f rediscluster/redis-cluster.yaml
