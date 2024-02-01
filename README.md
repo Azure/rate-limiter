@@ -1,10 +1,15 @@
 # rate-limiter-backed-by-redis-cache
+## rate limiter interface
+![ratelimiter design (1)](https://github.com/Xinyue-Wang/rate-limiter-backed-by-redis-cache/assets/37516611/6dc2b223-29ba-4798-b48d-429753d7dd95)
+
+
+## 
 
 ## rate limiting algorithm
-token bucket
+### Option1: token bucket
  ![image](https://github.com/Xinyue-Wang/token_bucket_cache/assets/37516611/27cf75b1-2198-466b-9f57-a26a82f40c0e)
 
-## Implementation of a self-maintained token bucket cache:
+#### Implementation of a self-maintained token bucket cache:
 Prerequist: have a redis cache to store key-value pair
 
 Goal:  
