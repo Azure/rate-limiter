@@ -9,12 +9,12 @@ import (
 	"strconv"
 	"time"
 
-	"go.goms.io/token_bucket_cache/rediscache"
+	"go.goms.io/rate-limiter-backed-by-redis-cache/cache"
 )
 
 type Bucket struct {
 	key                 string
-	client              rediscache.RedisClient
+	client              cache.CacheClient
 	tokenDropRatePerMin int
 	burstSize           int
 	tokenState          tokenState
@@ -33,7 +33,7 @@ const (
 	DefaultBurstSize           = 10
 )
 
-func NewBucket(ctx context.Context, cacheClient rediscache.RedisClient, key string, tokenDropRatePerMin, burstSize int) (*Bucket, error) {
+func NewBucket(ctx context.Context, cacheClient cache.CacheClient, key string, tokenDropRatePerMin, burstSize int) (*Bucket, error) {
 	if tokenDropRatePerMin <= 0 {
 		return nil, errors.New("token drop rate per minute must be greater than 0")
 	}

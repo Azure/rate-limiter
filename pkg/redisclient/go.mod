@@ -1,4 +1,4 @@
-module go.goms.io/token_bucket_cache/pkg/redisclient
+module go.goms.io/rate-limiter-backed-by-redis-cache/pkg/redisclient
 
 go 1.20
 

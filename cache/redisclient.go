@@ -1,4 +1,4 @@
-package rediscache
+package cache
 
 import (
 	"context"
@@ -7,19 +7,19 @@ import (
 	"github.com/go-redis/redis/v8"
 )
 
-type CacheClient struct {
+type RedisClient struct {
 	ctx    context.Context
 	client *redis.Client
 }
 
-func NewCacheClient(ctx context.Context, client *redis.Client) *CacheClient {
-	return &CacheClient{
+func NewCacheClient(ctx context.Context, client *redis.Client) *RedisClient {
+	return &RedisClient{
 		ctx:    ctx,
 		client: client,
 	}
 }
 
-func (c *CacheClient) UpdateCache(key string, cacheData map[string]string, expireTime time.Duration) error {
+func (c *RedisClient) UpdateCache(key string, cacheData map[string]string, expireTime time.Duration) error {
 	_, err := c.client.HSet(c.ctx, key, cacheData).Result()
 	if err != nil {
 		return err
@@ -28,11 +28,10 @@ func (c *CacheClient) UpdateCache(key string, cacheData map[string]string, expir
 	return nil
 }
 
-func (c *CacheClient) GetCache(key string) (map[string]string, error) {
+func (c *RedisClient) GetCache(key string) (map[string]string, error) {
 	return c.client.HGetAll(c.ctx, key).Result()
 }
 
-
-func (c *CacheClient) GetMemoryUsage(key string)(int64, error) {
+func (c *RedisClient) GetMemoryUsage(key string) (int64, error) {
 	return c.client.MemoryUsage(c.ctx, key).Result()
 }

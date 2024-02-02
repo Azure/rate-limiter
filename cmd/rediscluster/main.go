@@ -16,7 +16,7 @@ import (
 	"pkg/redisclient"
 
 	"github.com/gorilla/mux"
-	"go.goms.io/token_bucket_cache/tokenbucket"
+	"go.goms.io/rate-limiter-backed-by-redis-cache/tokenbucket"
 )
 
 const (

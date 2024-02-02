@@ -1,10 +1,10 @@
-module go.goms.io/token_bucket_cache/cmd/selfmanagedredis
+module go.goms.io/rate-limiter-backed-by-redis-cache/cmd/selfmanagedredis
 
 go 1.20
 
 require (
 	github.com/gorilla/mux v1.8.0
-	go.goms.io/token_bucket_cache/tokenbucket v0.0.0-00010101000000-000000000000
+	go.goms.io/rate-limiter-backed-by-redis-cache/tokenbucket v0.0.0-00010101000000-000000000000
 	pkg/handlers v0.0.0-00010101000000-000000000000
 	pkg/redisclient v0.0.0-00010101000000-000000000000
 )
@@ -29,7 +29,7 @@ require (
 )
 
 replace (
-	go.goms.io/token_bucket_cache/tokenbucket => ../../tokenbucket
+	go.goms.io/rate-limiter-backed-by-redis-cache/tokenbucket => ../../tokenbucket
 	pkg/handlers => ../../pkg/handlers
 	pkg/redisclient => ../../pkg/redisclient
 )

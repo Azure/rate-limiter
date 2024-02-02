@@ -7,7 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"go.goms.io/token_bucket_cache/tokenbucket"
+	"go.goms.io/rate-limiter-backed-by-redis-cache/tokenbucket"
 
 	"github.com/gorilla/mux"
 )
