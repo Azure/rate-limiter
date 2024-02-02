@@ -1,4 +1,5 @@
-# rate-limiter-backed-by-redis-cache
+# distributed-rate-limiter
+
 ## rate limiter workflow
 
 ![ratelimiter design (2)](https://github.com/Xinyue-Wang/rate-limiter-backed-by-redis-cache/assets/37516611/529faeec-7269-4701-9ac9-f97914551020)
