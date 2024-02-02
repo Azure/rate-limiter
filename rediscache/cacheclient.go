@@ -1,4 +1,4 @@
-package tokenbucket
+package rediscache
 
 import (
 	"context"

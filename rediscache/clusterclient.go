@@ -1,4 +1,4 @@
-package tokenbucket
+package rediscache
 
 import (
 	"context"
@@ -32,6 +32,6 @@ func (c *RedisClusterCacheClient) GetCache(key string) (map[string]string, error
 	return c.client.HGetAll(c.ctx, key).Result()
 }
 
-func (c *RedisClusterCacheClient) GetMemoryUsage(key string)(int64, error) {
+func (c *RedisClusterCacheClient) GetMemoryUsage(key string) (int64, error) {
 	return c.client.MemoryUsage(c.ctx, key).Result()
 }
