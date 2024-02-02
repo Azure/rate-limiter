@@ -7,7 +7,7 @@
 aggregated counting + local counting
 ![Counter design with cache](https://github.com/Xinyue-Wang/rate-limiter-backed-by-redis-cache/assets/37516611/0bf4e623-17eb-4466-9a49-40fdddba71f8)
 
-## local store
+## In memory cache
 https://github.com/patrickmn/go-cache
 
 ## remote store
