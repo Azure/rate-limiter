@@ -1,7 +1,6 @@
 package ratelimiter
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -34,24 +33,20 @@ func (r *TokenBucketRateLimiter) GetDecision(key string, burstSize, rate int) (i
 		// wrong config
 		return http.StatusInternalServerError, err
 	}
+	// take token from both memcache and remote cache
+	httpStatusCode1, err1 := takeTokenFromCache(r.remoteCacheClient, bucket, key)
+	// memcache won't return any error
+	httpStatusCode2, _ := takeTokenFromCache(r.memCacheClient, bucket, key)
+	if httpStatusCode1 != http.StatusInternalServerError {
+		return httpStatusCode1, err1
+	}
+	return httpStatusCode2, nil
+}
 
-	currentCache, err := r.remoteCacheClient.GetCache(key)
+func takeTokenFromCache(client cache.CacheClient, bucket *tokenbucket.Bucket, key string) (int, error) {
+	currentCache, err := client.GetCache(key)
 	if err != nil {
-		// use memcache
-		currentCache, _ = r.memCacheClient.GetCache(key)
-		tokenNumbers, lastIncreaseTime, expireData, err := bucket.TakeToken(currentCache)
-		if err != nil {
-			// wrong data
-			return http.StatusInternalServerError, err
-		}
-		if tokenNumbers < 0 {
-			return http.StatusTooManyRequests, errors.New(fmt.Sprintf("too many requests from: %s", key))
-		}
-		_ = r.memCacheClient.UpdateCache(key, map[string]string{
-			tokenNumberKey:           strconv.Itoa(tokenNumbers),
-			tokenLastIncreaseTimeKey: lastIncreaseTime.Format(time.RFC3339),
-		}, expireData)
-		return http.StatusOK, nil
+		return http.StatusInternalServerError, err
 	}
 	tokenNumbers, lastIncreaseTime, expireData, err := bucket.TakeToken(currentCache)
 	if err != nil {
@@ -59,9 +54,9 @@ func (r *TokenBucketRateLimiter) GetDecision(key string, burstSize, rate int) (i
 		return http.StatusInternalServerError, err
 	}
 	if tokenNumbers < 0 {
-		return http.StatusTooManyRequests, errors.New(fmt.Sprintf("too many requests from: %s", key))
+		return http.StatusTooManyRequests, fmt.Errorf("too many requests from: %s", key)
 	}
-	_ = r.remoteCacheClient.UpdateCache(key, map[string]string{
+	_ = client.UpdateCache(key, map[string]string{
 		tokenNumberKey:           strconv.Itoa(tokenNumbers),
 		tokenLastIncreaseTimeKey: lastIncreaseTime.Format(time.RFC3339),
 	}, expireData)
