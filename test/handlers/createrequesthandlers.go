@@ -7,22 +7,23 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"go.goms.io/rate-limiter-backed-by-redis-cache/tokenbucket"
+	"pkg/tokenbucket"
+	"ratelimiter"
 
 	"github.com/gorilla/mux"
 )
 
 type ClusterCreateRequestHandlers struct {
-	ctx    context.Context
-	client tokenbucket.RedisClient
-	key    string
+	ctx         context.Context
+	ratelimiter ratelimiter.TokenBucketRateLimiter
+	key         string
 }
 
-func NewClusterCreateRequestHandlers(ctx context.Context, client tokenbucket.RedisClient, key string) ClusterCreateRequestHandlers {
+func NewClusterCreateRequestHandlers(ctx context.Context, ratelimiter ratelimiter.TokenBucketRateLimiter, key string) ClusterCreateRequestHandlers {
 	return ClusterCreateRequestHandlers{
-		ctx:    ctx,
-		client: client,
-		key:    key,
+		ctx:         ctx,
+		key:         key,
+		ratelimiter: ratelimiter,
 	}
 }
 
@@ -48,12 +49,7 @@ func (uh ClusterCreateRequestHandlers) HandleRequest(rw http.ResponseWriter, r *
 	}
 	id := u[uh.key].(string)
 	fmt.Printf("find bucket by key: %s\n", id)
-	bucket, err := tokenbucket.NewBucket(uh.ctx, uh.client, id, tokenbucket.DefaultTokenDropRatePerMin, tokenbucket.DefaultBurstSize)
-	if err != nil {
-		http.Error(rw, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	statusCode, err := bucket.TakeToken()
+	statusCode, err := uh.ratelimiter.GetDecision(id, tokenbucket.DefaultBurstSize, tokenbucket.DefaultTokenDropRatePerMin)
 	if err != nil {
 		http.Error(rw, err.Error(), statusCode)
 		return
@@ -65,7 +61,7 @@ func (uh ClusterCreateRequestHandlers) HandleRequest(rw http.ResponseWriter, r *
 func (uh ClusterCreateRequestHandlers) GetBucketStats(rw http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)[uh.key]
 	fmt.Printf("find bucket by key: %s\n", id)
-	info, err := uh.client.GetCache(id)
+	info, err := uh.ratelimiter.GetStats(id)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return

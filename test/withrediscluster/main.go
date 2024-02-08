@@ -5,18 +5,18 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
-	"pkg/handlers"
-	"pkg/redisclient"
-
 	"github.com/gorilla/mux"
-	"go.goms.io/rate-limiter-backed-by-redis-cache/tokenbucket"
+	"pkg/cache"
+	"test/handlers"
 )
 
 const (
@@ -24,6 +24,21 @@ const (
 	bucketMaxTokenNumber = 10
 	tokenDropRatePerMin  = 1
 )
+
+func BuildRedisClusterClient(ctx context.Context, redisHost, redisPassword string) (*redis.ClusterClient, error) {
+	var op *redis.ClusterOptions
+	if len(redisPassword) == 0 {
+		op = &redis.ClusterOptions{Addrs: strings.Split(redisHost, ",")}
+	} else {
+		op = &redis.ClusterOptions{Addrs: strings.Split(redisHost, ","), Password: redisPassword}
+	}
+	client := redis.NewClusterClient(op)
+	err := client.Ping(ctx).Err()
+	if err != nil {
+		return nil, errors.New(fmt.Sprintf("failed to connect with redis instance at %s - %v", redisHost, err))
+	}
+	return client, nil
+}
 
 func main() {
 	ctx := context.Background()
@@ -33,12 +48,12 @@ func main() {
 		log.Fatal("REDIS_HOST is not set.")
 	}
 	// connect to redis cluster
-	redisClusterClient, err := redisclient.BuildRedisClusterClient(ctx, redisHost, os.Getenv("REDIS_PASSWORD"))
+	redisClusterClient, err := cache.BuildRedisClusterClient(ctx, redisHost, os.Getenv("REDIS_PASSWORD"))
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	uh := handlers.NewClusterCreateRequestHandlers(ctx, tokenbucket.NewClusterClient(ctx, redisClusterClient), key)
+	uh := handlers.NewClusterCreateRequestHandlers(ctx, cache.NewClusterClient(ctx, redisClusterClient), key)
 
 	router := mux.NewRouter()
 	router.HandleFunc(fmt.Sprintf("/%s/", key), uh.HandleRequest).Methods(http.MethodPost)

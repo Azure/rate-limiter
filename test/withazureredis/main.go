@@ -1,16 +1,32 @@
-package redisclient
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License. See License.txt in the project root for license information.
+
+package main
 
 import (
 	"context"
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"strings"
+	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
+
+	"pkg/cache"
+	"test/handlers"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/redis/armredis/v2"
-	"github.com/go-redis/redis/v8"
+	"github.com/gorilla/mux"
+)
+
+const (
+	key                  = "billingAccount"
+	bucketMaxTokenNumber = 10
+	tokenDropRatePerMin  = 1
 )
 
 func BuildRedisClientFromAzure(ctx context.Context, subscriptionID string, resourceGroupName, redisName string) (*redis.Client, error) {
@@ -29,27 +45,12 @@ func BuildRedisClientFromAzure(ctx context.Context, subscriptionID string, resou
 		return nil, err
 	}
 
-	return BuildRedisClient(ctx, redisHost, redisPassword)
+	return buildRedisClient(ctx, redisHost, redisPassword)
 }
 
-func BuildRedisClient(ctx context.Context, redisHost, redisPassword string) (*redis.Client, error) {
+func buildRedisClient(ctx context.Context, redisHost, redisPassword string) (*redis.Client, error) {
 	op := &redis.Options{Addr: redisHost, Password: redisPassword, TLSConfig: &tls.Config{MinVersion: tls.VersionTLS12}, WriteTimeout: 60 * time.Second}
 	client := redis.NewClient(op)
-	err := client.Ping(ctx).Err()
-	if err != nil {
-		return nil, errors.New(fmt.Sprintf("failed to connect with redis instance at %s - %v", redisHost, err))
-	}
-	return client, nil
-}
-
-func BuildRedisClusterClient(ctx context.Context, redisHost, redisPassword string) (*redis.ClusterClient, error) {
-	var op *redis.ClusterOptions
-	if len(redisPassword) == 0 {
-		op = &redis.ClusterOptions{Addrs: strings.Split(redisHost, ",")}
-	} else {
-		op = &redis.ClusterOptions{Addrs: strings.Split(redisHost, ","), Password: redisPassword}
-	}
-	client := redis.NewClusterClient(op)
 	err := client.Ping(ctx).Err()
 	if err != nil {
 		return nil, errors.New(fmt.Sprintf("failed to connect with redis instance at %s - %v", redisHost, err))
@@ -87,4 +88,48 @@ func getRedisHost(ctx context.Context, azRedisClient *armredis.Client, resourceG
 	hostName := *resp.ResourceInfo.Properties.HostName
 	port := *resp.ResourceInfo.Properties.SSLPort
 	return fmt.Sprintf("%s:%d", hostName, port), nil
+}
+
+func main() {
+	ctx := context.Background()
+
+	subscriptionID := os.Getenv("AZURE_SUBSCRIPTION_ID")
+	if len(subscriptionID) == 0 {
+		log.Fatal("AZURE_SUBSCRIPTION_ID is not set.")
+	}
+	resourceGroupName := os.Getenv("AZURE_RESOURCE_GROUP")
+	if len(resourceGroupName) == 0 {
+		log.Fatal("AZURE_RESOURCE_GROUP is not set.")
+	}
+	redisName := os.Getenv("AZURE_REDIS_NAME")
+	if len(redisName) == 0 {
+		log.Fatal("AZURE_REDIS_NAME is not set.")
+	}
+
+	redisClient, err := cache.BuildRedisClientFromAzure(ctx, subscriptionID, resourceGroupName, redisName)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	uh := handlers.NewClusterCreateRequestHandlers(ctx, cache.NewRedisClient(ctx, redisClient), key)
+
+	router := mux.NewRouter()
+	router.HandleFunc(fmt.Sprintf("/%s/", key), uh.HandleRequest).Methods(http.MethodPost)
+	router.HandleFunc(fmt.Sprintf("/%s/{%s}", key, key), uh.GetBucketStats).Methods(http.MethodGet)
+
+	server := http.Server{Addr: ":8080", Handler: router}
+	go func() {
+		err := server.ListenAndServe()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		log.Println("Server start to listen on port 8080")
+	}()
+	// listening to OS shutdown signal
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
+	<-signalChan
+	log.Println("Got shutdown signal, shutting down server gracefully...")
+	server.Shutdown(ctx)
 }

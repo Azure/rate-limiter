@@ -12,7 +12,7 @@ type RedisClient struct {
 	client *redis.Client
 }
 
-func NewCacheClient(ctx context.Context, client *redis.Client) *RedisClient {
+func NewRedisClient(ctx context.Context, client *redis.Client) *RedisClient {
 	return &RedisClient{
 		ctx:    ctx,
 		client: client,
