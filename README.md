@@ -65,7 +65,7 @@ set AZURE_REDIS_NAME=xinywaRedisCache
 3. Clone the repo. Then in the terminal, run the following command to start the application.
 
 ```shell
-cd cmd/azureredis
+cd test/withazureredis
 go run main.go
 ```
 The HTTP server will start on port `8080`.
@@ -97,7 +97,15 @@ kubectl apply -f cmd/rediscluster/template/deployment.yaml
 kubectl expose deployment rate-limit-server --name=rate-limit-svc --port=8080 --target-port=8080 --type=NodePort
 kubectl port-forward svc/rate-limit-svc 8080:80
 ```
-3. Send request to test cache and throttle:
+3. Clone the repo. Then in the terminal, run the following command to start the application.
+
+```shell
+cd test/withrediscluster
+go run main.go
+```
+The HTTP server will start on port `8080`.
+
+4. Send request to test cache and throttle:
 
    Create request with billingAccount id1:
    ```bash
