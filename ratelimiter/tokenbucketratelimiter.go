@@ -44,6 +44,9 @@ func (r *TokenBucketRateLimiter) GetDecision(key string, burstSize, rate int) (i
 }
 
 func takeTokenFromCache(client cache.CacheClient, bucket *tokenbucket.Bucket, key string) (int, error) {
+	if client == nil {
+		return http.StatusInternalServerError, fmt.Errorf("cache client is nil")
+	}
 	currentCache, err := client.GetCache(key)
 	if err != nil {
 		return http.StatusInternalServerError, err
@@ -67,13 +70,19 @@ func (r *TokenBucketRateLimiter) GetStats(key string, burstSize, rate int) (int,
 	bucket, err := tokenbucket.NewBucket(rate, burstSize)
 	if err != nil {
 		// wrong config
-		return http.StatusInternalServerError, err
+		return 0, err
 	}
 	var currentCache map[string]string
-	currentCache, err = r.remoteCacheClient.GetCache(key)
-	if err != nil {
+	var err2 error
+	if r.remoteCacheClient != nil {
+		currentCache, err2 = r.remoteCacheClient.GetCache(key)
+	}
+	if r.remoteCacheClient == nil || err2 != nil {
 		// use memcache
 		currentCache, _ = r.memCacheClient.GetCache(key)
+	}
+	if currentCache == nil {
+		return burstSize, nil
 	}
 	return bucket.GetTokenNumber(currentCache)
 }

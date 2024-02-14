@@ -2,6 +2,7 @@ package cache
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -20,7 +21,11 @@ func NewRedisClient(ctx context.Context, client *redis.Client) *RedisClient {
 }
 
 func (c *RedisClient) UpdateCache(key string, cacheData map[string]string, expireTime time.Duration) error {
-	_, err := c.client.HSet(c.ctx, key, cacheData).Result()
+	err := c.client.Ping(c.ctx).Err()
+	if err != nil {
+		return fmt.Errorf("failed to connect with redis instance: %s", err.Error())
+	}
+	_, err = c.client.HSet(c.ctx, key, cacheData).Result()
 	if err != nil {
 		return err
 	}
@@ -29,9 +34,17 @@ func (c *RedisClient) UpdateCache(key string, cacheData map[string]string, expir
 }
 
 func (c *RedisClient) GetCache(key string) (map[string]string, error) {
+	err := c.client.Ping(c.ctx).Err()
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect with redis instance: %s", err.Error())
+	}
 	return c.client.HGetAll(c.ctx, key).Result()
 }
 
 func (c *RedisClient) GetMemoryUsage(key string) (int64, error) {
+	err := c.client.Ping(c.ctx).Err()
+	if err != nil {
+		return 0, fmt.Errorf("failed to connect with redis instance: %s", err.Error())
+	}
 	return c.client.MemoryUsage(c.ctx, key).Result()
 }

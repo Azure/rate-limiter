@@ -61,19 +61,14 @@ func (uh ClusterCreateRequestHandlers) HandleRequest(rw http.ResponseWriter, r *
 func (uh ClusterCreateRequestHandlers) GetBucketStats(rw http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)[uh.key]
 	fmt.Printf("find bucket by key: %s\n", id)
-	info, err := uh.ratelimiter.GetStats(id)
+	tokenNumber, err := uh.ratelimiter.GetStats(id, tokenbucket.DefaultBurstSize, tokenbucket.DefaultTokenDropRatePerMin)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	if len(info) == 0 {
-		rw.WriteHeader(http.StatusNotFound)
-		return
-	}
-
 	rw.Header().Add("Content-Type", "application/json")
-	err = json.NewEncoder(rw).Encode(info)
+	err = json.NewEncoder(rw).Encode(tokenNumber)
 
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)

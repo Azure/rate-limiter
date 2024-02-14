@@ -10,6 +10,12 @@ type MemCacheClient struct {
 	memCache *cache.Cache
 }
 
+func NewMemCacheClient(defaultExpireTime, defaultPurgeTime time.Duration) MemCacheClient {
+	return MemCacheClient{
+		memCache: cache.New(defaultExpireTime, defaultPurgeTime),
+	}
+}
+
 func (c MemCacheClient) UpdateCache(key string, cacheData map[string]string, expireTime time.Duration) error {
 	c.memCache.Set(key, cacheData, expireTime)
 	return nil

@@ -16,10 +16,12 @@ import (
 	"time"
 
 	"pkg/cache"
+	"ratelimiter"
 	"test/handlers"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/redis/armredis/v2"
+	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/mux"
 )
 
@@ -35,15 +37,19 @@ func BuildRedisClientFromAzure(ctx context.Context, subscriptionID string, resou
 		return nil, err
 	}
 
-	keys, err := getRedisCred(ctx, azRedisClient, resourceGroupName, redisName)
+	resp, err := azRedisClient.ListKeys(ctx, resourceGroupName, redisName, nil)
 	if err != nil {
 		return nil, err
 	}
-	redisPassword := *keys.PrimaryKey
-	redisHost, err := getRedisHost(ctx, azRedisClient, resourceGroupName, redisName)
+	redisPassword := *resp.AccessKeys.PrimaryKey
+
+	keyResp, err := azRedisClient.Get(ctx, resourceGroupName, redisName, nil)
 	if err != nil {
 		return nil, err
 	}
+	hostName := *keyResp.ResourceInfo.Properties.HostName
+	port := *keyResp.ResourceInfo.Properties.SSLPort
+	redisHost := fmt.Sprintf("%s:%d", hostName, port)
 
 	return buildRedisClient(ctx, redisHost, redisPassword)
 }
@@ -72,24 +78,6 @@ func buildAzRedisClient(subscriptionID, resourceGroupName string) (*armredis.Cli
 	return azRedisClient, nil
 }
 
-func getRedisCred(ctx context.Context, azRedisClient *armredis.Client, resourceGroupName, redisName string) (*armredis.AccessKeys, error) {
-	resp, err := azRedisClient.ListKeys(ctx, resourceGroupName, redisName, nil)
-	if err != nil {
-		return nil, err
-	}
-	return &resp.AccessKeys, nil
-}
-
-func getRedisHost(ctx context.Context, azRedisClient *armredis.Client, resourceGroupName, redisName string) (string, error) {
-	resp, err := azRedisClient.Get(ctx, resourceGroupName, redisName, nil)
-	if err != nil {
-		return "", err
-	}
-	hostName := *resp.ResourceInfo.Properties.HostName
-	port := *resp.ResourceInfo.Properties.SSLPort
-	return fmt.Sprintf("%s:%d", hostName, port), nil
-}
-
 func main() {
 	ctx := context.Background()
 
@@ -106,16 +94,22 @@ func main() {
 		log.Fatal("AZURE_REDIS_NAME is not set.")
 	}
 
-	redisClient, err := cache.BuildRedisClientFromAzure(ctx, subscriptionID, resourceGroupName, redisName)
+	redisClient, err := BuildRedisClientFromAzure(ctx, subscriptionID, resourceGroupName, redisName)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	uh := handlers.NewClusterCreateRequestHandlers(ctx, cache.NewRedisClient(ctx, redisClient), key)
+	cacheClient := cache.NewRedisClient(ctx, redisClient)
+
+	memClient := cache.NewMemCacheClient(10*time.Minute, 20*time.Minute)
+
+	uh := handlers.NewClusterCreateRequestHandlers(ctx, *ratelimiter.NewTokenBucketRateLimiter(memClient, cacheClient), key)
 
 	router := mux.NewRouter()
 	router.HandleFunc(fmt.Sprintf("/%s/", key), uh.HandleRequest).Methods(http.MethodPost)
 	router.HandleFunc(fmt.Sprintf("/%s/{%s}", key, key), uh.GetBucketStats).Methods(http.MethodGet)
+
+	log.Println("Start server on port 8080")
 
 	server := http.Server{Addr: ":8080", Handler: router}
 	go func() {
