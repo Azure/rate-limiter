@@ -32,7 +32,7 @@ const (
 )
 
 func BuildRedisClientFromAzure(ctx context.Context, subscriptionID string, resourceGroupName, redisName string) (*redis.Client, error) {
-	azRedisClient, err := buildAzRedisClient(subscriptionID, resourceGroupName)
+	azRedisClient, err := buildAzRedisClientWithLocalAuth(subscriptionID, resourceGroupName)
 	if err != nil {
 		return nil, err
 	}
@@ -64,12 +64,27 @@ func buildRedisClient(ctx context.Context, redisHost, redisPassword string) (*re
 	return client, nil
 }
 
-func buildAzRedisClient(subscriptionID, resourceGroupName string) (*armredis.Client, error) {
+func buildAzRedisClientWithLocalAuth(subscriptionID, resourceGroupName string) (*armredis.Client, error) {
 	cred, err := azidentity.NewDefaultAzureCredential(nil)
 	if err != nil {
 		return nil, err
 	}
 
+	redisClientFactory, err := armredis.NewClientFactory(subscriptionID, cred, nil)
+	if err != nil {
+		return nil, err
+	}
+	azRedisClient := redisClientFactory.NewClient()
+	return azRedisClient, nil
+}
+
+func buildAzRedisClientWithMSI(subscriptionID, resourceGroupName, msiResourceId string) (*armredis.Client, error) {
+	id := azidentity.ResourceID(msiResourceId)
+	opts := &azidentity.ManagedIdentityCredentialOptions{ID: id}
+	cred, err := azidentity.NewManagedIdentityCredential(opts)
+	if err != nil {
+		return nil, err
+	}
 	redisClientFactory, err := armredis.NewClientFactory(subscriptionID, cred, nil)
 	if err != nil {
 		return nil, err
