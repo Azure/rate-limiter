@@ -1,6 +1,6 @@
-module github.com/Azure/distributed-rate-limiter/ratelimiter
+module github.com/Azure/rate-limiter/ratelimiter
 
-go 1.21
+go 1.21.3
 
 replace (
 	pkg/cache => ../pkg/cache
