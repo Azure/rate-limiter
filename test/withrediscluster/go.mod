@@ -1,4 +1,4 @@
-module go.goms.io/distributed-rate-limiter/test/withrediscluster
+module github.com/Azure/distributed-rate-limiter/test/withrediscluster
 
 go 1.21
 

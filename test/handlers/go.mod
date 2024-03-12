@@ -1,4 +1,4 @@
-module go.goms.io/distributed-rate-limiter/test/handlers
+module github.com/Azure/distributed-rate-limiter/test/handlers
 
 go 1.21
 

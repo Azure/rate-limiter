@@ -1,4 +1,4 @@
-module go.goms.io/distributed-rate-limiter/pkg/cache
+module github.com/Azure/distributed-rate-limiter/pkg/cache
 
 go 1.21
 

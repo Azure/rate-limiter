@@ -1,4 +1,4 @@
-module go.goms.io/aks/distributed-rate-limiter/ratelimiter
+module github.com/Azure/distributed-rate-limiter/ratelimiter
 
 go 1.21
 
