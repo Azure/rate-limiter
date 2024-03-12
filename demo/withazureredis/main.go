@@ -15,12 +15,11 @@ import (
 	"syscall"
 	"time"
 
-	"pkg/cache"
-	"ratelimiter"
-	"test/handlers"
-
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/redis/armredis/v2"
+	"github.com/Azure/rate-limiter/demo/handlers"
+	"github.com/Azure/rate-limiter/pkg/cache"
+	"github.com/Azure/rate-limiter/ratelimiter"
 	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/mux"
 )

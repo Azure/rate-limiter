@@ -7,9 +7,8 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"pkg/tokenbucket"
-	"ratelimiter"
-
+	"github.com/Azure/rate-limiter/pkg/tokenbucket"
+	"github.com/Azure/rate-limiter/ratelimiter"
 	"github.com/gorilla/mux"
 )
 

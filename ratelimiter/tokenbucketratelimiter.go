@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"time"
 
-	"pkg/cache"
-	"pkg/tokenbucket"
+	"github.com/Azure/rate-limiter/pkg/cache"
+	"github.com/Azure/rate-limiter/pkg/tokenbucket"
 )
 
 const (

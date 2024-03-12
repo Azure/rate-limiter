@@ -13,10 +13,13 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
+	"github.com/Azure/rate-limiter/demo/handlers"
+	"github.com/Azure/rate-limiter/pkg/cache"
+	"github.com/Azure/rate-limiter/ratelimiter"
+	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/mux"
-	"pkg/cache"
-	"test/handlers"
 )
 
 const (
@@ -48,12 +51,14 @@ func main() {
 		log.Fatal("REDIS_HOST is not set.")
 	}
 	// connect to redis cluster
-	redisClusterClient, err := cache.BuildRedisClusterClient(ctx, redisHost, os.Getenv("REDIS_PASSWORD"))
+	redisClusterClient, err := BuildRedisClusterClient(ctx, redisHost, os.Getenv("REDIS_PASSWORD"))
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	uh := handlers.NewClusterCreateRequestHandlers(ctx, cache.NewClusterClient(ctx, redisClusterClient), key)
+	memClient := cache.NewMemCacheClient(10*time.Minute, 20*time.Minute)
+
+	uh := handlers.NewClusterCreateRequestHandlers(ctx, *ratelimiter.NewTokenBucketRateLimiter(memClient, cache.NewClusterClient(ctx, redisClusterClient)), key)
 
 	router := mux.NewRouter()
 	router.HandleFunc(fmt.Sprintf("/%s/", key), uh.HandleRequest).Methods(http.MethodPost)
