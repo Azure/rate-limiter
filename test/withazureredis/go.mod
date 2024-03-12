@@ -1,6 +1,6 @@
 module test/withazureredis
 
-go 1.21
+go 1.21.3
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.5.1

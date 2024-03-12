@@ -1,3 +1,3 @@
-module github.com/Azure/distributed-rate-limiter/pkg/tokenbucket
+module github.com/Azure/rate-limiter/pkg/tokenbucket
 
 go 1.21.3

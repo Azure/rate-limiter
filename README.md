@@ -1,4 +1,4 @@
-# distributed-rate-limiter
+# rate-limiter
 
 ## rate limiter workflow
 
@@ -6,7 +6,7 @@
 
 ## counter
 aggregated counting + local counting
-![Counter design with cache (1)](https://github.com/Xinyue-Wang/distributed-rate-limiter/assets/37516611/4ce99dcb-c6a4-428b-bd1e-dca86d8da17d)
+![Counter design with cache (1)](https://github.com/Xinyue-Wang/rate-limiter/assets/37516611/4ce99dcb-c6a4-428b-bd1e-dca86d8da17d)
 
 ## In memory cache
 https://github.com/patrickmn/go-cache

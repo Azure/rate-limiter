@@ -1,6 +1,6 @@
-module github.com/Azure/distributed-rate-limiter/test/withrediscluster
+module github.com/Azure/rate-limiter/test/withrediscluster
 
-go 1.21
+go 1.21.3
 
 require (
 	github.com/gorilla/mux v1.8.0

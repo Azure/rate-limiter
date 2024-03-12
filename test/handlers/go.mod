@@ -1,6 +1,6 @@
-module github.com/Azure/distributed-rate-limiter/test/handlers
+module github.com/Azure/rate-limiter/test/handlers
 
-go 1.21
+go 1.21.3
 
 require (
 	github.com/gorilla/mux v1.8.0

@@ -1,4 +1,4 @@
-module github.com/Azure/distributed-rate-limiter/pkg/cache
+module github.com/Azure/rate-limiter/pkg/cache
 
 go 1.21.3
 
