@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 
 	"github.com/Azure/rate-limiter/pkg/tokenbucket"
@@ -47,11 +48,17 @@ func (uh ClusterCreateRequestHandlers) HandleRequest(rw http.ResponseWriter, r *
 		return
 	}
 	id := u[uh.key].(string)
-	fmt.Printf("find bucket by key: %s\n", id)
+	log.Printf("find bucket by key: %s\n", id)
 	statusCode, err := uh.ratelimiter.GetDecision(id, tokenbucket.DefaultBurstSize, tokenbucket.DefaultTokenDropRatePerMin)
-	if err != nil {
-		http.Error(rw, err.Error(), statusCode)
-		return
+	if statusCode != http.StatusOK {
+		// err could only returned for remote cache
+		// log and not return error, because we fall back on memcache
+		if err != nil {
+			log.Printf("failed to get decision from remote cache: %s", err.Error())
+		} else if statusCode == http.StatusTooManyRequests {
+			http.Error(rw, "too many requests", http.StatusTooManyRequests)
+			return
+		}
 	}
 
 	rw.WriteHeader(http.StatusCreated)
@@ -59,7 +66,7 @@ func (uh ClusterCreateRequestHandlers) HandleRequest(rw http.ResponseWriter, r *
 
 func (uh ClusterCreateRequestHandlers) GetBucketStats(rw http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)[uh.key]
-	fmt.Printf("find bucket by key: %s\n", id)
+	log.Printf("find bucket by key: %s\n", id)
 	tokenNumber, err := uh.ratelimiter.GetStats(id, tokenbucket.DefaultBurstSize, tokenbucket.DefaultTokenDropRatePerMin)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)

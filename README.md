@@ -58,9 +58,11 @@ az redis create --location $location --name $AZURE_REDIS_NAME --resource-group $
 2. Set them to the respective environment variables
 
 ```shell
-set AZURE_SUBSCRIPTION_ID=8ecadfc9-d1a3-4ea4-b844-0d9f87e4d7c8
-set AZURE_RESOURCE_GROUP=xinywaTestRG
-set AZURE_REDIS_NAME=xinywaRedisCache
+export AZURE_SUBSCRIPTION_ID=8ecadfc9-d1a3-4ea4-b844-0d9f87e4d7c8
+export AZURE_RESOURCE_GROUP=xinywaTestRG
+export AZURE_REDIS_NAME=xinywaRedisCache
+export MSI_RESOURCE_ID="/subscriptions/8ecadfc9-d1a3-4ea4-b844-0d9f87e4d7c8/resourcegroups/xinywaTestRG/providers/Microsoft.ManagedIdentity/userAssignedIdentities/xinywamsi"
+export MSI_OBJECT_ID=0a35e6d8-1026-4082-8890-8725c27e7594
 ```
 3. Clone the repo. Then in the terminal, run the following command to start the application.
 

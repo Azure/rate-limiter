@@ -10,8 +10,8 @@ type MemCacheClient struct {
 	memCache *cache.Cache
 }
 
-func NewMemCacheClient(defaultExpireTime, defaultPurgeTime time.Duration) MemCacheClient {
-	return MemCacheClient{
+func NewMemCacheClient(defaultExpireTime, defaultPurgeTime time.Duration) *MemCacheClient {
+	return &MemCacheClient{
 		memCache: cache.New(defaultExpireTime, defaultPurgeTime),
 	}
 }

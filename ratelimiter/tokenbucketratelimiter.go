@@ -57,7 +57,8 @@ func takeTokenFromCache(client cache.CacheClient, bucket *tokenbucket.Bucket, ke
 		return http.StatusInternalServerError, err
 	}
 	if tokenNumbers < 0 {
-		return http.StatusTooManyRequests, fmt.Errorf("too many requests from: %s", key)
+		// when tokenNumber < 0 means too many requests, return 429 and not update cache
+		return http.StatusTooManyRequests, nil
 	}
 	_ = client.UpdateCache(key, map[string]string{
 		tokenNumberKey:           strconv.Itoa(tokenNumbers),
