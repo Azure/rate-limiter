@@ -26,29 +26,26 @@ var (
 )
 
 type AzureRedisClient struct {
-	ctx          context.Context
 	redisClient  *redis.Client
 	tokenFetcher *azureCacheTokenFetcher
 }
 
 type azureCacheTokenFetcher struct {
-	ctx         context.Context
 	accessToken azcore.AccessToken
 	cred        *azidentity.DefaultAzureCredential
 }
 
-func NewAzureCacheTokenFetcherWithMSI(ctx context.Context) (*azureCacheTokenFetcher, error) {
+func NewAzureCacheTokenFetcherWithMSI() (*azureCacheTokenFetcher, error) {
 	cred, err := azidentity.NewDefaultAzureCredential(nil)
 	return &azureCacheTokenFetcher{
-		ctx:  ctx,
 		cred: cred,
 	}, err
 }
 
 // getToken gets a new token if token is expired
-func (d *azureCacheTokenFetcher) getToken() (string, error) {
+func (d *azureCacheTokenFetcher) getToken(ctx context.Context) (string, error) {
 	if d.tokenExpired() {
-		if err := d.refreshToken(d.ctx); err != nil {
+		if err := d.refreshToken(ctx); err != nil {
 			return "", fmt.Errorf("refress token err: %w", err)
 		}
 	}
@@ -72,11 +69,11 @@ func (d *azureCacheTokenFetcher) tokenExpired() bool {
 }
 
 func NewAzureRedisClient(ctx context.Context, hostName string, port int, identityObjectID string) (*AzureRedisClient, error) {
-	tokenFetcher, err := NewAzureCacheTokenFetcherWithMSI(ctx)
+	tokenFetcher, err := NewAzureCacheTokenFetcherWithMSI()
 	if err != nil {
 		return nil, err
 	}
-	redisPassword, err := tokenFetcher.getToken()
+	redisPassword, err := tokenFetcher.getToken(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +82,6 @@ func NewAzureRedisClient(ctx context.Context, hostName string, port int, identit
 		return nil, err
 	}
 	return &AzureRedisClient{
-		ctx:          ctx,
 		redisClient:  redisClient,
 		tokenFetcher: tokenFetcher,
 	}, nil
@@ -107,34 +103,34 @@ func buildRedisClient(ctx context.Context, redisHost, msiObjectID, redisPassword
 	return client, nil
 }
 
-func (c *AzureRedisClient) UpdateCache(key string, cacheData map[string]string, expireTime time.Duration) error {
+func (c *AzureRedisClient) UpdateCache(ctx context.Context, key string, cacheData map[string]string, expireTime time.Duration) error {
 	if c.tokenFetcher.tokenExpired() {
-		if err := c.tokenFetcher.refreshToken(c.ctx); err != nil {
+		if err := c.tokenFetcher.refreshToken(ctx); err != nil {
 			return err
 		}
 		// update password when token expired
-		newClient, err := buildRedisClient(c.ctx, c.redisClient.Options().Addr, c.redisClient.Options().Username, c.tokenFetcher.accessToken.Token)
+		newClient, err := buildRedisClient(ctx, c.redisClient.Options().Addr, c.redisClient.Options().Username, c.tokenFetcher.accessToken.Token)
 		if err != nil {
 			return err
 		}
 		c.redisClient = newClient
 	}
-	err := c.redisClient.Ping(c.ctx).Err()
+	err := c.redisClient.Ping(ctx).Err()
 	if err != nil {
 		return fmt.Errorf("failed to connect with redis instance: %s", err.Error())
 	}
-	_, err = c.redisClient.HSet(c.ctx, key, cacheData).Result()
+	_, err = c.redisClient.HSet(ctx, key, cacheData).Result()
 	if err != nil {
 		return err
 	}
-	c.redisClient.Expire(c.ctx, key, expireTime)
+	c.redisClient.Expire(ctx, key, expireTime)
 	return nil
 }
 
-func (c *AzureRedisClient) GetCache(key string) (map[string]string, error) {
-	err := c.redisClient.Ping(c.ctx).Err()
+func (c *AzureRedisClient) GetCache(ctx context.Context, key string) (map[string]string, error) {
+	err := c.redisClient.Ping(ctx).Err()
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect with redis instance: %s", err.Error())
 	}
-	return c.redisClient.HGetAll(c.ctx, key).Result()
+	return c.redisClient.HGetAll(ctx, key).Result()
 }

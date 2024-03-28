@@ -8,7 +8,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/Azure/rate-limiter/pkg/tokenbucket"
+	"github.com/Azure/rate-limiter/pkg/algorithm"
 	"github.com/Azure/rate-limiter/ratelimiter"
 	"github.com/gorilla/mux"
 )
@@ -49,7 +49,7 @@ func (uh ClusterCreateRequestHandlers) HandleRequest(rw http.ResponseWriter, r *
 	}
 	id := u[uh.key].(string)
 	log.Printf("find bucket by key: %s\n", id)
-	statusCode, err := uh.ratelimiter.GetDecision(id, tokenbucket.DefaultBurstSize, tokenbucket.DefaultTokenDropRatePerMin)
+	statusCode, err := uh.ratelimiter.GetDecision(uh.ctx, id, algorithm.DefaultBurstSize, algorithm.DefaultTokenDropRatePerMin)
 	if statusCode != http.StatusOK {
 		// err could only returned for remote cache
 		// log and not return error, because we fall back on memcache
@@ -67,7 +67,7 @@ func (uh ClusterCreateRequestHandlers) HandleRequest(rw http.ResponseWriter, r *
 func (uh ClusterCreateRequestHandlers) GetBucketStats(rw http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)[uh.key]
 	log.Printf("find bucket by key: %s\n", id)
-	tokenNumber, err := uh.ratelimiter.GetStats(id, tokenbucket.DefaultBurstSize, tokenbucket.DefaultTokenDropRatePerMin)
+	tokenNumber, err := uh.ratelimiter.GetStats(uh.ctx, id, algorithm.DefaultBurstSize, algorithm.DefaultTokenDropRatePerMin)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return

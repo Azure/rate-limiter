@@ -58,7 +58,7 @@ func main() {
 
 	memClient := cache.NewMemCacheClient(10*time.Minute, 20*time.Minute)
 
-	uh := handlers.NewClusterCreateRequestHandlers(ctx, *ratelimiter.NewTokenBucketRateLimiter(memClient, cache.NewClusterClient(ctx, redisClusterClient)), key)
+	uh := handlers.NewClusterCreateRequestHandlers(ctx, *ratelimiter.NewTokenBucketRateLimiter(memClient, cache.NewClusterClient(redisClusterClient)), key)
 
 	router := mux.NewRouter()
 	router.HandleFunc(fmt.Sprintf("/%s/", key), uh.HandleRequest).Methods(http.MethodPost)

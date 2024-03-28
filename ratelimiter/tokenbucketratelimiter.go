@@ -1,13 +1,14 @@
 package ratelimiter
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strconv"
 	"time"
 
+	"github.com/Azure/rate-limiter/pkg/algorithm"
 	"github.com/Azure/rate-limiter/pkg/cache"
-	"github.com/Azure/rate-limiter/pkg/tokenbucket"
 )
 
 const (
@@ -27,27 +28,27 @@ func NewTokenBucketRateLimiter(memCacheClient, remoteCacheClient cache.CacheClie
 	}
 }
 
-func (r *TokenBucketRateLimiter) GetDecision(key string, burstSize, rate int) (int, error) {
-	bucket, err := tokenbucket.NewBucket(rate, burstSize)
+func (r *TokenBucketRateLimiter) GetDecision(ctx context.Context, key string, burstSize, rate int) (int, error) {
+	bucket, err := algorithm.NewBucket(rate, burstSize)
 	if err != nil {
 		// wrong config
 		return http.StatusInternalServerError, err
 	}
 	// take token from both memcache and remote cache
-	httpStatusCode1, err1 := takeTokenFromCache(r.remoteCacheClient, bucket, key)
+	httpStatusCode1, err1 := takeTokenFromCache(ctx, r.remoteCacheClient, bucket, key)
 	// memcache won't return any error
-	httpStatusCode2, _ := takeTokenFromCache(r.memCacheClient, bucket, key)
+	httpStatusCode2, _ := takeTokenFromCache(ctx, r.memCacheClient, bucket, key)
 	if httpStatusCode1 != http.StatusInternalServerError {
 		return httpStatusCode1, err1
 	}
 	return httpStatusCode2, nil
 }
 
-func takeTokenFromCache(client cache.CacheClient, bucket *tokenbucket.Bucket, key string) (int, error) {
+func takeTokenFromCache(ctx context.Context, client cache.CacheClient, bucket *algorithm.Bucket, key string) (int, error) {
 	if client == nil {
 		return http.StatusInternalServerError, fmt.Errorf("cache client is nil")
 	}
-	currentCache, err := client.GetCache(key)
+	currentCache, err := client.GetCache(ctx, key)
 	if err != nil {
 		return http.StatusInternalServerError, err
 	}
@@ -60,15 +61,15 @@ func takeTokenFromCache(client cache.CacheClient, bucket *tokenbucket.Bucket, ke
 		// when tokenNumber < 0 means too many requests, return 429 and not update cache
 		return http.StatusTooManyRequests, nil
 	}
-	_ = client.UpdateCache(key, map[string]string{
+	_ = client.UpdateCache(ctx, key, map[string]string{
 		tokenNumberKey:           strconv.Itoa(tokenNumbers),
 		tokenLastIncreaseTimeKey: lastIncreaseTime.Format(time.RFC3339),
 	}, expireData)
 	return http.StatusOK, nil
 }
 
-func (r *TokenBucketRateLimiter) GetStats(key string, burstSize, rate int) (int, error) {
-	bucket, err := tokenbucket.NewBucket(rate, burstSize)
+func (r *TokenBucketRateLimiter) GetStats(ctx context.Context, key string, burstSize, rate int) (int, error) {
+	bucket, err := algorithm.NewBucket(rate, burstSize)
 	if err != nil {
 		// wrong config
 		return 0, err
@@ -76,11 +77,11 @@ func (r *TokenBucketRateLimiter) GetStats(key string, burstSize, rate int) (int,
 	var currentCache map[string]string
 	var err2 error
 	if r.remoteCacheClient != nil {
-		currentCache, err2 = r.remoteCacheClient.GetCache(key)
+		currentCache, err2 = r.remoteCacheClient.GetCache(ctx, key)
 	}
 	if r.remoteCacheClient == nil || err2 != nil {
 		// use memcache
-		currentCache, _ = r.memCacheClient.GetCache(key)
+		currentCache, _ = r.memCacheClient.GetCache(ctx, key)
 	}
 	if currentCache == nil {
 		return burstSize, nil

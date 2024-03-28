@@ -1,8 +1,11 @@
 package cache
 
-import "time"
+import (
+	"context"
+	"time"
+)
 
 type CacheClient interface {
-	UpdateCache(key string, cacheData map[string]string, expireTime time.Duration) error
-	GetCache(key string) (map[string]string, error)
+	UpdateCache(ctx context.Context, key string, cacheData map[string]string, expireTime time.Duration) error
+	GetCache(ctx context.Context, key string) (map[string]string, error)
 }
