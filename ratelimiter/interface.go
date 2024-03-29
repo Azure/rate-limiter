@@ -6,5 +6,5 @@ import (
 )
 
 type RateLimiter interface {
-	GetDecision(ctx context.Context, key string, burstSize, rate int) (time.Duration, int, error)
+	GetDecision(ctx context.Context, key string, burstSize int, rate time.Duration) (time.Duration, int, error)
 }
