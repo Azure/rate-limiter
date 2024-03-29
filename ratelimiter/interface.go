@@ -1,7 +1,10 @@
 package ratelimiter
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 type RateLimiter interface {
-	GetDecision(ctx context.Context, key string, burstSize, rate int) (int, error)
+	GetDecision(ctx context.Context, key string, burstSize, rate int) (time.Duration, int, error)
 }
