@@ -49,25 +49,24 @@ func (uh ClusterCreateRequestHandlers) HandleRequest(rw http.ResponseWriter, r *
 	}
 	id := u[uh.key].(string)
 	log.Printf("find bucket by key: %s\n", id)
-	statusCode, err := uh.ratelimiter.GetDecision(uh.ctx, id, algorithm.DefaultBurstSize, algorithm.DefaultTokenDropRatePerMin)
+	retryAfter, statusCode, err := uh.ratelimiter.GetDecision(uh.ctx, id, algorithm.DefaultBurstSize, algorithm.DefaultTokenDropRate)
 	if statusCode != http.StatusOK {
 		// err could only returned for remote cache
 		// log and not return error, because we fall back on memcache
 		if err != nil {
 			log.Printf("failed to get decision from remote cache: %s", err.Error())
 		} else if statusCode == http.StatusTooManyRequests {
-			http.Error(rw, "too many requests", http.StatusTooManyRequests)
+			http.Error(rw, fmt.Sprintf("too many requests, retry after %s", retryAfter), http.StatusTooManyRequests)
 			return
 		}
 	}
-
 	rw.WriteHeader(http.StatusCreated)
 }
 
 func (uh ClusterCreateRequestHandlers) GetBucketStats(rw http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)[uh.key]
 	log.Printf("find bucket by key: %s\n", id)
-	tokenNumber, err := uh.ratelimiter.GetStats(uh.ctx, id, algorithm.DefaultBurstSize, algorithm.DefaultTokenDropRatePerMin)
+	tokenNumber, err := uh.ratelimiter.GetStats(uh.ctx, id, algorithm.DefaultBurstSize, algorithm.DefaultTokenDropRate)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return

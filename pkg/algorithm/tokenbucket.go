@@ -2,14 +2,13 @@ package algorithm
 
 import (
 	"errors"
-	"math"
 	"strconv"
 	"time"
 )
 
 type Bucket struct {
-	tokenDropRatePerMin int
-	burstSize           int
+	TokenDropRate time.Duration // add a token to bucket every tokenDropRate
+	BurstSize     int
 }
 
 type tokenState struct {
@@ -19,26 +18,29 @@ type tokenState struct {
 }
 
 const (
-	tokenNumberKey             = "tokens"
-	tokenLastIncreaseTimeKey   = "tokenLastIncreaseTime"
-	DefaultTokenDropRatePerMin = 1
-	DefaultBurstSize           = 10
+	tokenNumberKey           = "tokens"
+	tokenLastIncreaseTimeKey = "tokenLastIncreaseTime"
+	DefaultTokenDropRate     = time.Minute
+	DefaultBurstSize         = 10
 )
 
-func NewBucket(tokenDropRatePerMin, burstSize int) (*Bucket, error) {
-	if tokenDropRatePerMin <= 0 {
-		return nil, errors.New("token drop rate per minute must be greater than 0")
-	}
+func NewBucket(tokenDropRate time.Duration, burstSize int) (*Bucket, error) {
 	if burstSize <= 0 {
 		return nil, errors.New("burst size must be greater than 0")
 	}
 	bucket := &Bucket{
-		tokenDropRatePerMin: tokenDropRatePerMin,
-		burstSize:           burstSize,
+		TokenDropRate: tokenDropRate,
+		BurstSize:     burstSize,
 	}
 	return bucket, nil
 }
 
+// return bucket current token number, last time token increase, bucket expire time, error
+// bucket expire time = time when the bucket is full(reach burst size)
+// let's say there is currently 6 tokens, max token number is 10, token drop every minute
+// 4 minutes later, the bucket will reach max token number
+// then we don't need to keep this bucket in the cache
+// when user request with this id come again after expiration, we will just start a new bucket with 10 tokens
 func (b *Bucket) TakeToken(currentCache map[string]string) (int, time.Time, time.Duration, error) {
 	var tokenState *tokenState
 	var err error
@@ -48,13 +50,14 @@ func (b *Bucket) TakeToken(currentCache map[string]string) (int, time.Time, time
 
 	tokenState.tokenNumbers--
 
-	// let's say there is currently 6 tokens, max token number is 10, token drop rate is 1 per minute
-	// 4 minutes later, the bucket will reach max token number
-	// then we don't need to keep this bucket in the cache
-	// when user request with this billing account id come again after expiration, we will just start a new bucket with 10 tokens
-	tokesLeftForBucketToFull := b.burstSize - tokenState.tokenNumbers
-	timeForCurrentbucketToFull := tokenState.lastIncreaseTime.Add(time.Duration(math.Ceil(float64(tokesLeftForBucketToFull)/float64(b.tokenDropRatePerMin))) * time.Minute)
+	var tokesLeftForBucketToFull int
+	if tokenState.tokenNumbers < 0 {
+		tokesLeftForBucketToFull = b.BurstSize
+	} else {
+		tokesLeftForBucketToFull = b.BurstSize - tokenState.tokenNumbers
+	}
 
+	timeForCurrentbucketToFull := tokenState.lastIncreaseTime.Add(time.Duration(tokesLeftForBucketToFull) * b.TokenDropRate)
 	return tokenState.tokenNumbers, tokenState.lastIncreaseTime, time.Until(timeForCurrentbucketToFull), nil
 }
 
@@ -67,9 +70,17 @@ func (b *Bucket) GetTokenNumber(currentCache map[string]string) (int, error) {
 	return tokenState.tokenNumbers, nil
 }
 
+// cache record: current token number, last time token increase
+// why record a time stamp for last time token increase? - to reconstruct token numbers
+// let's say burst size is 10, token drop every minute
+// record for this bucket in cache: token number: 0, last increase time: 10:00:00
+// at 10:00:30, this bucket is: token number 0, last increase time: 10:00:00
+// at 10:01:30, this bucket is: token number 1, last increase time: 10:01:00
+// at 10:06:20, this bucket is: token number 6, last increase time: 10:06:00
+// at 10:30:30, this bucket is: token number 10(burst size), last increase time: 10:30:00
 func (b *Bucket) reconstructTokenStateFromCache(currentCache map[string]string) (*tokenState, error) {
 	if len(currentCache) == 0 {
-		tokenState := tokenState{tokenNumbers: b.burstSize, lastIncreaseTime: time.Now()}
+		tokenState := tokenState{tokenNumbers: b.BurstSize, lastIncreaseTime: time.Now()}
 		return &tokenState, nil
 	}
 	lastSavedTokens, err := strconv.Atoi(currentCache[tokenNumberKey])
@@ -83,10 +94,10 @@ func (b *Bucket) reconstructTokenStateFromCache(currentCache map[string]string) 
 	currentTime := time.Now()
 	elapsedTime := currentTime.Sub(tokenLastIncreaseTime)
 	// calculate tokens
-	shouldIncreaseTokens := int(math.Floor(elapsedTime.Seconds()/60)) * b.tokenDropRatePerMin
+	shouldIncreaseTokens := int(elapsedTime / b.TokenDropRate)
 	tokensNow := shouldIncreaseTokens + lastSavedTokens
-	if tokensNow > b.burstSize {
-		tokensNow = b.burstSize
+	if tokensNow > b.BurstSize {
+		tokensNow = b.BurstSize
 	}
 	if shouldIncreaseTokens > 0 {
 		// update tokenLastIncreaseTime if tokens are increased

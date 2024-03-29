@@ -28,47 +28,50 @@ func NewTokenBucketRateLimiter(memCacheClient, remoteCacheClient cache.CacheClie
 	}
 }
 
-func (r *TokenBucketRateLimiter) GetDecision(ctx context.Context, key string, burstSize, rate int) (int, error) {
+// return http status code and error
+func (r *TokenBucketRateLimiter) GetDecision(ctx context.Context, key string, burstSize int, rate time.Duration) (time.Duration, int, error) {
 	bucket, err := algorithm.NewBucket(rate, burstSize)
 	if err != nil {
 		// wrong config
-		return http.StatusInternalServerError, err
+		return time.Duration(0), http.StatusInternalServerError, err
 	}
 	// take token from both memcache and remote cache
-	httpStatusCode1, err1 := takeTokenFromCache(ctx, r.remoteCacheClient, bucket, key)
+	retryAfter1, httpStatusCode1, err1 := takeTokenFromCache(ctx, r.remoteCacheClient, bucket, key)
 	// memcache won't return any error
-	httpStatusCode2, _ := takeTokenFromCache(ctx, r.memCacheClient, bucket, key)
+	retryAfter2, httpStatusCode2, _ := takeTokenFromCache(ctx, r.memCacheClient, bucket, key)
 	if httpStatusCode1 != http.StatusInternalServerError {
-		return httpStatusCode1, err1
+		return retryAfter1, httpStatusCode1, err1
 	}
-	return httpStatusCode2, nil
+	return retryAfter2, httpStatusCode2, nil
 }
 
-func takeTokenFromCache(ctx context.Context, client cache.CacheClient, bucket *algorithm.Bucket, key string) (int, error) {
+// return retry after time
+func takeTokenFromCache(ctx context.Context, client cache.CacheClient, bucket *algorithm.Bucket, key string) (time.Duration, int, error) {
 	if client == nil {
-		return http.StatusInternalServerError, fmt.Errorf("cache client is nil")
+		return time.Duration(0), http.StatusInternalServerError, fmt.Errorf("cache client is nil")
 	}
 	currentCache, err := client.GetCache(ctx, key)
 	if err != nil {
-		return http.StatusInternalServerError, err
+		return time.Duration(0), http.StatusInternalServerError, err
 	}
-	tokenNumbers, lastIncreaseTime, expireData, err := bucket.TakeToken(currentCache)
+	tokenNumbers, lastIncreaseTime, expireTime, err := bucket.TakeToken(currentCache)
 	if err != nil {
 		// wrong data
-		return http.StatusInternalServerError, err
+		return time.Duration(0), http.StatusInternalServerError, err
 	}
 	if tokenNumbers < 0 {
-		// when tokenNumber < 0 means too many requests, return 429 and not update cache
-		return http.StatusTooManyRequests, nil
+		// when tokenNumber < 0 means too many requests, return retry after time, 429 and not update cache
+		retryAt := lastIncreaseTime.Add(bucket.TokenDropRate)
+		return time.Until(retryAt), http.StatusTooManyRequests, nil
 	}
 	_ = client.UpdateCache(ctx, key, map[string]string{
 		tokenNumberKey:           strconv.Itoa(tokenNumbers),
 		tokenLastIncreaseTimeKey: lastIncreaseTime.Format(time.RFC3339),
-	}, expireData)
-	return http.StatusOK, nil
+	}, expireTime)
+	return time.Duration(0), http.StatusOK, nil
 }
 
-func (r *TokenBucketRateLimiter) GetStats(ctx context.Context, key string, burstSize, rate int) (int, error) {
+func (r *TokenBucketRateLimiter) GetStats(ctx context.Context, key string, burstSize int, rate time.Duration) (int, error) {
 	bucket, err := algorithm.NewBucket(rate, burstSize)
 	if err != nil {
 		// wrong config
