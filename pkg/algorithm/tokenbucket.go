@@ -87,6 +87,9 @@ func (b *Bucket) reconstructTokenStateFromCache(currentCache map[string]string) 
 	if err != nil {
 		return nil, err
 	}
+	if lastSavedTokens < 0 {
+		return nil, errors.New("wrong token number")
+	}
 	tokenLastIncreaseTime, err := time.Parse(time.RFC3339, currentCache[tokenLastIncreaseTimeKey])
 	if err != nil {
 		return nil, err

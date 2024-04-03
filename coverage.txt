@@ -1,0 +1,26 @@
+mode: atomic
+github.com/Azure/rate-limiter/pkg/algorithm/tokenbucket.go:27.77,28.20 1 3
+github.com/Azure/rate-limiter/pkg/algorithm/tokenbucket.go:28.20,30.3 1 0
+github.com/Azure/rate-limiter/pkg/algorithm/tokenbucket.go:31.2,35.20 2 3
+github.com/Azure/rate-limiter/pkg/algorithm/tokenbucket.go:44.99,47.82 3 0
+github.com/Azure/rate-limiter/pkg/algorithm/tokenbucket.go:47.82,49.3 1 0
+github.com/Azure/rate-limiter/pkg/algorithm/tokenbucket.go:51.2,54.33 3 0
+github.com/Azure/rate-limiter/pkg/algorithm/tokenbucket.go:54.33,56.3 1 0
+github.com/Azure/rate-limiter/pkg/algorithm/tokenbucket.go:56.8,58.3 1 0
+github.com/Azure/rate-limiter/pkg/algorithm/tokenbucket.go:60.2,61.106 2 0
+github.com/Azure/rate-limiter/pkg/algorithm/tokenbucket.go:64.78,67.82 3 0
+github.com/Azure/rate-limiter/pkg/algorithm/tokenbucket.go:67.82,69.3 1 0
+github.com/Azure/rate-limiter/pkg/algorithm/tokenbucket.go:70.2,70.37 1 0
+github.com/Azure/rate-limiter/pkg/algorithm/tokenbucket.go:81.102,82.28 1 5
+github.com/Azure/rate-limiter/pkg/algorithm/tokenbucket.go:82.28,85.3 2 0
+github.com/Azure/rate-limiter/pkg/algorithm/tokenbucket.go:86.2,87.16 2 5
+github.com/Azure/rate-limiter/pkg/algorithm/tokenbucket.go:87.16,89.3 1 0
+github.com/Azure/rate-limiter/pkg/algorithm/tokenbucket.go:90.2,90.25 1 5
+github.com/Azure/rate-limiter/pkg/algorithm/tokenbucket.go:90.25,92.3 1 1
+github.com/Azure/rate-limiter/pkg/algorithm/tokenbucket.go:93.2,94.16 2 4
+github.com/Azure/rate-limiter/pkg/algorithm/tokenbucket.go:94.16,96.3 1 1
+github.com/Azure/rate-limiter/pkg/algorithm/tokenbucket.go:97.2,102.29 5 3
+github.com/Azure/rate-limiter/pkg/algorithm/tokenbucket.go:102.29,104.3 1 1
+github.com/Azure/rate-limiter/pkg/algorithm/tokenbucket.go:105.2,105.30 1 3
+github.com/Azure/rate-limiter/pkg/algorithm/tokenbucket.go:105.30,108.3 1 2
+github.com/Azure/rate-limiter/pkg/algorithm/tokenbucket.go:109.2,110.25 2 3
