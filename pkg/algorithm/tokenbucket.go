@@ -104,7 +104,7 @@ func (b *Bucket) reconstructTokenStateFromCache(currentCache map[string]string) 
 	}
 	if shouldIncreaseTokens > 0 {
 		// update tokenLastIncreaseTime if tokens are increased
-		tokenLastIncreaseTime = tokenLastIncreaseTime.Add(time.Duration(shouldIncreaseTokens) * time.Minute)
+		tokenLastIncreaseTime = tokenLastIncreaseTime.Add(time.Duration(shouldIncreaseTokens) * b.TokenDropRate)
 	}
 	tokenState := tokenState{tokenNumbers: tokensNow, lastIncreaseTime: tokenLastIncreaseTime}
 	return &tokenState, nil
