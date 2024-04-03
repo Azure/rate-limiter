@@ -58,7 +58,9 @@ func (b *Bucket) TakeToken(currentCache map[string]string) (int, time.Time, time
 	}
 
 	timeForCurrentbucketToFull := tokenState.lastIncreaseTime.Add(time.Duration(tokesLeftForBucketToFull) * b.TokenDropRate)
-	return tokenState.tokenNumbers, tokenState.lastIncreaseTime, time.Until(timeForCurrentbucketToFull), nil
+	now := time.Now()
+	expireTime := timeForCurrentbucketToFull.Sub(now)
+	return tokenState.tokenNumbers, tokenState.lastIncreaseTime, expireTime, nil
 }
 
 func (b *Bucket) GetTokenNumber(currentCache map[string]string) (int, error) {
@@ -104,7 +106,7 @@ func (b *Bucket) reconstructTokenStateFromCache(currentCache map[string]string) 
 	}
 	if shouldIncreaseTokens > 0 {
 		// update tokenLastIncreaseTime if tokens are increased
-		tokenLastIncreaseTime = tokenLastIncreaseTime.Add(time.Duration(shouldIncreaseTokens) * time.Minute)
+		tokenLastIncreaseTime = tokenLastIncreaseTime.Add(time.Duration(shouldIncreaseTokens) * b.TokenDropRate)
 	}
 	tokenState := tokenState{tokenNumbers: tokensNow, lastIncreaseTime: tokenLastIncreaseTime}
 	return &tokenState, nil
