@@ -58,9 +58,7 @@ func (b *Bucket) TakeToken(currentCache map[string]string) (int, time.Time, time
 	}
 
 	timeForCurrentbucketToFull := tokenState.lastIncreaseTime.Add(time.Duration(tokesLeftForBucketToFull) * b.TokenDropRate)
-	now := time.Now()
-	expireTime := timeForCurrentbucketToFull.Sub(now)
-	return tokenState.tokenNumbers, tokenState.lastIncreaseTime, expireTime, nil
+	return tokenState.tokenNumbers, tokenState.lastIncreaseTime, time.Until(timeForCurrentbucketToFull), nil
 }
 
 func (b *Bucket) GetTokenNumber(currentCache map[string]string) (int, error) {
