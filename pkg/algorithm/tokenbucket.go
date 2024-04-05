@@ -42,23 +42,24 @@ func NewBucket(tokenDropRate time.Duration, burstSize int) (*Bucket, error) {
 // then we don't need to keep this bucket in the cache
 // when user request with this id come again after expiration, we will just start a new bucket with 10 tokens
 func (b *Bucket) TakeToken(currentCache map[string]string) (int, time.Time, time.Duration, error) {
-	var tokenState *tokenState
+	var ts *tokenState
 	var err error
-	if tokenState, err = b.reconstructTokenStateFromCache(currentCache); err != nil {
-		return 0, time.Now(), time.Millisecond, err
+	// if fail to construct, then start a new bucket, but err will return
+	if ts, err = b.reconstructTokenStateFromCache(currentCache); err != nil {
+		ts = &tokenState{tokenNumbers: b.BurstSize, lastIncreaseTime: time.Now()}
 	}
 
-	tokenState.tokenNumbers--
+	ts.tokenNumbers--
 
 	var tokesLeftForBucketToFull int
-	if tokenState.tokenNumbers < 0 {
+	if ts.tokenNumbers < 0 {
 		tokesLeftForBucketToFull = b.BurstSize
 	} else {
-		tokesLeftForBucketToFull = b.BurstSize - tokenState.tokenNumbers
+		tokesLeftForBucketToFull = b.BurstSize - ts.tokenNumbers
 	}
 
-	timeForCurrentbucketToFull := tokenState.lastIncreaseTime.Add(time.Duration(tokesLeftForBucketToFull) * b.TokenDropRate)
-	return tokenState.tokenNumbers, tokenState.lastIncreaseTime, time.Until(timeForCurrentbucketToFull), nil
+	timeForCurrentbucketToFull := ts.lastIncreaseTime.Add(time.Duration(tokesLeftForBucketToFull) * b.TokenDropRate)
+	return ts.tokenNumbers, ts.lastIncreaseTime, time.Until(timeForCurrentbucketToFull), err
 }
 
 func (b *Bucket) GetTokenNumber(currentCache map[string]string) (int, error) {
