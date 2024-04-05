@@ -83,3 +83,20 @@ func TestTakeToken(t *testing.T) {
 	// about 120s before expire
 	assert.Equal(t, 1, int(120*time.Second/expireTime))
 }
+
+func TestTakeTokenWrongData(t *testing.T) {
+	bucket, err := NewBucket(30*time.Second, 10)
+	assert.Nil(t, err)
+	currentCache := map[string]string{
+		tokenNumberKey:           "wrong-data",
+		tokenLastIncreaseTimeKey: time.Now().Add(-time.Minute).Format(time.RFC3339),
+	}
+
+	tokenNumbers, lastIncreaseTime, expireTime, err := bucket.TakeToken(currentCache)
+	assert.NotNil(t, err)
+	assert.Equal(t, 9, tokenNumbers)
+	// about now
+	assert.True(t, lastIncreaseTime.After(time.Now().Add(-time.Second*1)))
+	// about 30s before expire
+	assert.Equal(t, 1, int(30*time.Second/expireTime))
+}
