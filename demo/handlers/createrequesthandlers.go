@@ -49,16 +49,13 @@ func (uh ClusterCreateRequestHandlers) HandleRequest(rw http.ResponseWriter, r *
 	}
 	id := u[uh.key].(string)
 	log.Printf("find bucket by key: %s\n", id)
-	retryAfter, statusCode, err := uh.ratelimiter.GetDecision(uh.ctx, id, algorithm.DefaultBurstSize, algorithm.DefaultTokenDropRate)
-	if statusCode != http.StatusOK {
-		// err could only returned for remote cache
-		// log and not return error, because we fall back on memcache
-		if err != nil {
-			log.Printf("failed to get decision from remote cache: %s", err.Error())
-		} else if statusCode == http.StatusTooManyRequests {
-			http.Error(rw, fmt.Sprintf("too many requests, retry after %s", retryAfter), http.StatusTooManyRequests)
-			return
-		}
+	allowed, rateLimiterError := uh.ratelimiter.GetDecision(uh.ctx, id, algorithm.DefaultBurstSize, algorithm.DefaultTokenDropRate)
+	if rateLimiterError != nil && rateLimiterError.IsRemoteCacheInternalError() {
+		log.Printf("failed to get decision from remote cache: %s", rateLimiterError.Error())
+	}
+	if !allowed {
+		http.Error(rw, fmt.Sprintf("too many requests, retry after %s", rateLimiterError.RetryAfter), http.StatusTooManyRequests)
+		return
 	}
 	rw.WriteHeader(http.StatusCreated)
 }
