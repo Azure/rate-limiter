@@ -2,7 +2,6 @@ package ratelimiter
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -28,47 +27,82 @@ func NewTokenBucketRateLimiter(memCacheClient, remoteCacheClient cache.CacheClie
 	}
 }
 
-// return http status code and error
-func (r *TokenBucketRateLimiter) GetDecision(ctx context.Context, key string, burstSize int, rate time.Duration) (time.Duration, int, error) {
+type RateLimiterError struct {
+	statusCode int
+	ErrMessage string
+	RetryAfter time.Duration
+}
+
+func (e RateLimiterError) Error() string {
+	return e.ErrMessage
+}
+
+func (e RateLimiterError) IsRemoteCacheInternalError() bool {
+	return e.statusCode == http.StatusInternalServerError
+}
+
+// return allow decision and error
+func (r *TokenBucketRateLimiter) GetDecision(ctx context.Context, key string, burstSize int, rate time.Duration) (bool, *RateLimiterError) {
 	bucket, err := algorithm.NewBucket(rate, burstSize)
 	if err != nil {
-		// wrong config
-		return time.Duration(0), http.StatusInternalServerError, err
+		// wrong config, fail open
+		return true, &RateLimiterError{
+			statusCode: http.StatusInternalServerError,
+			ErrMessage: err.Error(),
+		}
 	}
 	// take token from both memcache and remote cache
-	retryAfter1, httpStatusCode1, err1 := takeTokenFromCache(ctx, r.remoteCacheClient, bucket, key)
+	allow1, err1 := takeTokenFromCache(ctx, r.remoteCacheClient, bucket, key)
 	// memcache won't return any error
-	retryAfter2, httpStatusCode2, _ := takeTokenFromCache(ctx, r.memCacheClient, bucket, key)
-	if httpStatusCode1 != http.StatusInternalServerError {
-		return retryAfter1, httpStatusCode1, err1
+	allow2, _ := takeTokenFromCache(ctx, r.memCacheClient, bucket, key)
+	if err1 != nil && err1.IsRemoteCacheInternalError() {
+		return allow2, err1
 	}
-	return retryAfter2, httpStatusCode2, nil
+	return allow1, err1
 }
 
 // return retry after time
-func takeTokenFromCache(ctx context.Context, client cache.CacheClient, bucket *algorithm.Bucket, key string) (time.Duration, int, error) {
+func takeTokenFromCache(ctx context.Context, client cache.CacheClient, bucket *algorithm.Bucket, key string) (bool, *RateLimiterError) {
 	if client == nil {
-		return time.Duration(0), http.StatusInternalServerError, fmt.Errorf("cache client is nil")
+		return true, &RateLimiterError{
+			statusCode: http.StatusInternalServerError,
+			ErrMessage: "cache client is nil",
+		}
 	}
 	currentCache, err := client.GetCache(ctx, key)
 	if err != nil {
-		return time.Duration(0), http.StatusInternalServerError, err
+		return true, &RateLimiterError{
+			statusCode: http.StatusInternalServerError,
+			ErrMessage: err.Error(),
+		}
 	}
 	tokenNumbers, lastIncreaseTime, expireTime, err := bucket.TakeToken(currentCache)
 	if err != nil {
 		// wrong data
-		return time.Duration(0), http.StatusInternalServerError, err
+		return true, &RateLimiterError{
+			statusCode: http.StatusInternalServerError,
+			ErrMessage: err.Error(),
+		}
 	}
 	if tokenNumbers < 0 {
 		// when tokenNumber < 0 means too many requests, return retry after time, 429 and not update cache
 		retryAt := lastIncreaseTime.Add(bucket.TokenDropRate)
-		return time.Until(retryAt), http.StatusTooManyRequests, nil
+		return false, &RateLimiterError{
+			RetryAfter: time.Until(retryAt),
+			statusCode: http.StatusTooManyRequests,
+		}
 	}
-	_ = client.UpdateCache(ctx, key, map[string]string{
+	err = client.UpdateCache(ctx, key, map[string]string{
 		tokenNumberKey:           strconv.Itoa(tokenNumbers),
 		tokenLastIncreaseTimeKey: lastIncreaseTime.Format(time.RFC3339),
 	}, expireTime)
-	return time.Duration(0), http.StatusOK, nil
+	if err != nil {
+		return true, &RateLimiterError{
+			statusCode: http.StatusInternalServerError,
+			ErrMessage: err.Error(),
+		}
+	}
+	return true, nil
 }
 
 func (r *TokenBucketRateLimiter) GetStats(ctx context.Context, key string, burstSize int, rate time.Duration) (int, error) {
