@@ -28,7 +28,7 @@ func NewTokenBucketRateLimiter(memCacheClient, remoteCacheClient cache.CacheClie
 }
 
 type RateLimiterError struct {
-	statusCode int
+	StatusCode int
 	ErrMessage string
 	RetryAfter time.Duration
 }
@@ -38,7 +38,7 @@ func (e RateLimiterError) Error() string {
 }
 
 func (e RateLimiterError) IsRemoteCacheInternalError() bool {
-	return e.statusCode == http.StatusInternalServerError
+	return e.StatusCode == http.StatusInternalServerError
 }
 
 // return allow decision and error
@@ -47,7 +47,7 @@ func (r *TokenBucketRateLimiter) GetDecision(ctx context.Context, key string, bu
 	if err != nil {
 		// wrong config, fail open
 		return true, &RateLimiterError{
-			statusCode: http.StatusInternalServerError,
+			StatusCode: http.StatusInternalServerError,
 			ErrMessage: err.Error(),
 		}
 	}
@@ -65,14 +65,14 @@ func (r *TokenBucketRateLimiter) GetDecision(ctx context.Context, key string, bu
 func takeTokenFromCache(ctx context.Context, client cache.CacheClient, bucket *algorithm.Bucket, key string) (bool, *RateLimiterError) {
 	if client == nil {
 		return true, &RateLimiterError{
-			statusCode: http.StatusInternalServerError,
+			StatusCode: http.StatusInternalServerError,
 			ErrMessage: "cache client is nil",
 		}
 	}
 	currentCache, err := client.GetCache(ctx, key)
 	if err != nil {
 		return true, &RateLimiterError{
-			statusCode: http.StatusInternalServerError,
+			StatusCode: http.StatusInternalServerError,
 			ErrMessage: err.Error(),
 		}
 	}
@@ -80,7 +80,7 @@ func takeTokenFromCache(ctx context.Context, client cache.CacheClient, bucket *a
 	if err != nil {
 		// wrong data
 		return true, &RateLimiterError{
-			statusCode: http.StatusInternalServerError,
+			StatusCode: http.StatusInternalServerError,
 			ErrMessage: err.Error(),
 		}
 	}
@@ -89,7 +89,7 @@ func takeTokenFromCache(ctx context.Context, client cache.CacheClient, bucket *a
 		retryAt := lastIncreaseTime.Add(bucket.TokenDropRate)
 		return false, &RateLimiterError{
 			RetryAfter: time.Until(retryAt),
-			statusCode: http.StatusTooManyRequests,
+			StatusCode: http.StatusTooManyRequests,
 		}
 	}
 	err = client.UpdateCache(ctx, key, map[string]string{
@@ -98,7 +98,7 @@ func takeTokenFromCache(ctx context.Context, client cache.CacheClient, bucket *a
 	}, expireTime)
 	if err != nil {
 		return true, &RateLimiterError{
-			statusCode: http.StatusInternalServerError,
+			StatusCode: http.StatusInternalServerError,
 			ErrMessage: err.Error(),
 		}
 	}

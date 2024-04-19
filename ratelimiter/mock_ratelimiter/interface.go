@@ -9,7 +9,8 @@ import (
 	reflect "reflect"
 	time "time"
 
-	"go.uber.org/mock/gomock"
+	ratelimiter "github.com/Azure/rate-limiter/ratelimiter"
+	gomock "github.com/golang/mock/gomock"
 )
 
 // MockRateLimiter is a mock of RateLimiter interface.
@@ -36,13 +37,12 @@ func (m *MockRateLimiter) EXPECT() *MockRateLimiterMockRecorder {
 }
 
 // GetDecision mocks base method.
-func (m *MockRateLimiter) GetDecision(arg0 context.Context, arg1 string, arg2 int, arg3 time.Duration) (time.Duration, int, error) {
+func (m *MockRateLimiter) GetDecision(arg0 context.Context, arg1 string, arg2 int, arg3 time.Duration) (bool, *ratelimiter.RateLimiterError) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetDecision", arg0, arg1, arg2, arg3)
-	ret0, _ := ret[0].(time.Duration)
-	ret1, _ := ret[1].(int)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(*ratelimiter.RateLimiterError)
+	return ret0, ret1
 }
 
 // GetDecision indicates an expected call of GetDecision.
