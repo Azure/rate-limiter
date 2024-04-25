@@ -10,7 +10,7 @@ import (
 	time "time"
 
 	ratelimiter "github.com/Azure/rate-limiter/ratelimiter"
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockRateLimiter is a mock of RateLimiter interface.
