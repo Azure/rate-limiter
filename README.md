@@ -6,7 +6,7 @@
 
 ## counter
 aggregated counting + local counting
-![Counter design with cache (1)]![counter](https://github.com/Azure/rate-limiter/assets/37516611/ab153030-4c96-4f73-9081-2fa816df092d)
+![counter](https://github.com/Azure/rate-limiter/assets/37516611/ab153030-4c96-4f73-9081-2fa816df092d)
 
 
 ## In memory cache
