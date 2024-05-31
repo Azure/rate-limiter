@@ -6,7 +6,8 @@
 
 ## counter
 aggregated counting + local counting
-![Counter design with cache (1)](https://github.com/Xinyue-Wang/rate-limiter/assets/37516611/4ce99dcb-c6a4-428b-bd1e-dca86d8da17d)
+![Counter design with cache (1)]![counter](https://github.com/Azure/rate-limiter/assets/37516611/ab153030-4c96-4f73-9081-2fa816df092d)
+
 
 ## In memory cache
 https://github.com/patrickmn/go-cache
